@@ -2,12 +2,12 @@
   "ver": "1.2.0",
   "importer": "directory",
   "imported": true,
-  "uuid": "5649b719-4192-41d9-8f6d-4be48c6a5927",
+  "uuid": "e7b3bcea-fbe7-4f33-b5b5-4973b4b311be",
   "files": [],
   "subMetas": {},
   "userData": {
     "isBundle": true,
-    "priority": 9,
-    "bundleName": "GScriptBN"
+    "priority": 7,
+    "bundleName": "GameBN"
   }
 }

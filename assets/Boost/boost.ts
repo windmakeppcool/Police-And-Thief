@@ -3,7 +3,7 @@ const { ccclass, property } = _decorator;
 
 @ccclass('boost')
 export class boost extends Component {
-    @property(Canvas) private canvas: Canvas = null;
+    @property(Canvas) private canvas2d: Canvas = null;
 
     async start() {
         try {

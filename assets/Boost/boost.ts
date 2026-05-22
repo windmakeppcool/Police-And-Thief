@@ -5,8 +5,13 @@ const { ccclass, property } = _decorator;
 export class boost extends Component {
     @property(Canvas) private canvas: Canvas = null;
 
-    start() {
+    async start() {
+        try {
 
+        } catch (error) {
+            console.error(`加载资源包失败: ${error}`);
+            console.error(`请检查资源包是否正确加载`);
+        }
     }
 
     private loadBundle(bundleName: string): Promise<AssetManager.Bundle | null> {

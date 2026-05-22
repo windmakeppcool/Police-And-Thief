@@ -1,0 +1,24 @@
+{
+  "id": "level_002",
+  "size": 8,
+  "thief": { "x": 3, "y": 3 },
+  "buildings": [
+    { "x": 2, "y": 2, "variant": "b" },
+    { "x": 4, "y": 2, "variant": "b" },
+    { "x": 5, "y": 2, "variant": "b" },
+
+    { "x": 2, "y": 3, "variant": "b" },
+    { "x": 5, "y": 3, "variant": "b" },
+
+    { "x": 2, "y": 4, "variant": "b" },
+    { "x": 5, "y": 4, "variant": "b" },
+
+    { "x": 2, "y": 5, "variant": "b" },
+    { "x": 3, "y": 5, "variant": "b" },
+    { "x": 5, "y": 5, "variant": "b" }
+  ],
+  "policePool": [{ "variant": "p1", "count": 2 }],
+  "constraints": { "maxPoliceUsed": 2 },
+  "meta": { "title": "双缺口", "difficulty": 2 }
+}
+

@@ -1,5 +1,6 @@
 import { _decorator, Canvas, Component, Node } from 'cc';
 import { UIManager } from './core/ui/UIManager';
+import { ResManager } from './core/res/ResManager';
 const { ccclass, property } = _decorator;
 
 declare global {const gCtrl: GCtrl};
@@ -8,6 +9,7 @@ declare global {const gCtrl: GCtrl};
 @ccclass('GCtrl')
 export class GCtrl extends Component {
     readonly ui = new UIManager();
+    readonly res = new ResManager();
 
     async init(params: {canvas2d: Canvas}) {
         (globalThis as any)["gCtrl"] = this;

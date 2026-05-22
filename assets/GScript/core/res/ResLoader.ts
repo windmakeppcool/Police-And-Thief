@@ -1,5 +1,5 @@
 import { _decorator, Asset, Component, Constructor, Node } from 'cc';
-import { DestoryHook } from './DestoryHook';
+import { DestroyHook } from './DestroyHook';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResLoader')
@@ -47,7 +47,7 @@ export class ResLoader extends Component {
     }
 
     autoRelease(comp: Component) {
-        comp.node.addComponent(DestoryHook).addHook(() => {
+        comp.node.addComponent(DestroyHook).addHook(() => {
             this.releaseResRef();
         })
         return this;

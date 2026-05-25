@@ -40,4 +40,10 @@ export class UIManager {
     }
 }
 
-
+const g_Key2Url = new Map<string, IBundleUrl>();
+export function registerBUrlByCfg(cfg: {[uiClassName: string]: IBundleUrl}) {
+    for (let uiClassName in cfg) {
+        console.log(`注册预制体: ${uiClassName}`);
+        g_Key2Url.set(uiClassName, cfg[uiClassName]);
+    }
+}

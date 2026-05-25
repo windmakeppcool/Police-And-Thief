@@ -1,6 +1,7 @@
 import { _decorator, Canvas, Component, Node } from 'cc';
-import { UIManager } from './core/ui/UIManager';
+import { registerBUrlByCfg, UIManager } from './core/ui/UIManager';
 import { ResManager } from './core/res/ResManager';
+import { PrefabsCfg } from './auto/PrefabCfg';
 const { ccclass, property } = _decorator;
 
 declare global {const gCtrl: GCtrl};
@@ -18,6 +19,9 @@ export class GCtrl extends Component {
             return;
         }
         gCtrl.ui.init(params.canvas2d);
+
+        // 提前注册预制体信息
+        registerBUrlByCfg(PrefabsCfg);
         
     }
 

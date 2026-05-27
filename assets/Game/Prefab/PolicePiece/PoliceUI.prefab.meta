@@ -2,12 +2,12 @@
   "ver": "1.1.50",
   "importer": "prefab",
   "imported": true,
-  "uuid": "b7824ae5-0c46-48f4-9d70-448f4e4da74d",
+  "uuid": "e84b8961-5584-44dd-a7db-c672f8370338",
   "files": [
     ".json"
   ],
   "subMetas": {},
   "userData": {
-    "syncNodeName": "Thief"
+    "syncNodeName": "PoliceUI"
   }
 }

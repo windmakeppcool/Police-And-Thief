@@ -27,16 +27,16 @@ export function BL(url: string, bundleName: string, k?: string): IBundleUrl {
     return obj;
 }
 
-export function registerBUrlByCfg(cfg: {[uiClassName: string]: IBundleUrl}) {
+export function registerBUrlByCfg(cfg: { [uiClassName: string]: IBundleUrl }) {
     for (let uiClassName in cfg) {
         console.log(`注册预制体: ${uiClassName}`);
         g_Key2Url.set(uiClassName, cfg[uiClassName]);
     }
 }
 
-export function getUIClassByUrl(uiClass: any): IBundleUrl{
+export function getUIClassByUrl(uiClass: any): IBundleUrl {
     if (!uiClass) throw new Error("uiClass 不能为空");
-    if (g_UIClass2Url.has(uiClass)) return g_UIClass2Url[uiClass];
+    if (g_UIClass2Url.has(uiClass)) return g_UIClass2Url.get(uiClass);
 
     let uiClassName: string;
     if (typeof uiClass === 'string') {

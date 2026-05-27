@@ -1,8 +1,8 @@
 import { BL } from "../core/res/ResConst";
 
 export const PrefabsCfg = {
-    Police: BL("Prefabs/Police", "GameBN"),
-    Thief: BL("Prefabs/Thief", "GameBN"),
-    Structure: BL("Prefabs/Structure", "GameBN"),
-    BoardBackgroundTiled: BL("Prefabs/BoardBackgroundTiled", "GameBN"),
+    Thief: BL("Prefab/ThiefUI", "GameBN"),
+    Police: BL("Prefab/PolicePiece/PoliceUI", "GameBN"),
+    Structure: BL("Prefab/StructurePiece/StructureUI", "GameBN"),
+    BoardBackgroundTiled: BL("Prefab/BoardBackgroundTiled", "GameBN"),
 }

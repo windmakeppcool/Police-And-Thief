@@ -35,9 +35,10 @@ export class GCtrl extends Component {
 
         // 显示登录界面（传入登录成功回调函数）
         gCtrl.loginCtr.showLogin(async () => {
-            console.log("登录成功");
             // 通过 UIManager 打开棋盘背景，按其静态 viewLayer 自动挂到 Scene 层
+            await gCtrl.res.loadBundleAsync("GameBN");
             await gCtrl.ui.open(BoardBackgroundTiled);
+            console.log("登录成功");
             params.releaseBoostFun();
         });
 

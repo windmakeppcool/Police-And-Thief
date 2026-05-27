@@ -1,9 +1,13 @@
 import { _decorator, Component, Node, Size, Sprite, SpriteFrame, UITransform } from 'cc';
+import { EViewLayer } from '../../core/ui/EViewLayer';
 const { ccclass, property } = _decorator;
 
 @ccclass('BoardBackgroundTiled')
 export class BoardBackgroundTiled extends Component {
-    @property({type: SpriteFrame}) public tileSpriteFrame: SpriteFrame | null = null;
+    /** 所属 UI 层级：棋盘背景属于场景底图，挂载到 Scene 层 */
+    static readonly viewLayer = EViewLayer.Scene;
+
+    @property({ type: SpriteFrame }) public tileSpriteFrame: SpriteFrame | null = null;
     @property(Number) public gridSizeH: number = 8;
     @property(Number) public gridSizeW: number = 8;
     @property(Number) public tilePixelSize: number = 64;
@@ -17,7 +21,7 @@ export class BoardBackgroundTiled extends Component {
             console.error("请在BoardBackgroundTiled组件上添加SpriteFrame组件");
             return;
         }
-        
+
         const sprite = this.getOrAdd(Sprite);
         const ui = this.getOrAdd(UITransform);
 

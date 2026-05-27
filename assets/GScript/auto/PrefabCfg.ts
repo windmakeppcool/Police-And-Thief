@@ -4,4 +4,5 @@ export const PrefabsCfg = {
     Police: BL("Prefabs/Police", "GameBN"),
     Thief: BL("Prefabs/Thief", "GameBN"),
     Structure: BL("Prefabs/Structure", "GameBN"),
+    BoardBackgroundTiled: BL("Prefabs/BoardBackgroundTiled", "GameBN"),
 }

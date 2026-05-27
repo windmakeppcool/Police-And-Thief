@@ -1,5 +1,6 @@
-import { _decorator, Asset, Component, Constructor, Node } from 'cc';
+import { _decorator, Asset, Component, Constructor, Node, Prefab } from 'cc';
 import { DestroyHook } from './DestroyHook';
+import { getUIClassByUrl } from './ResConst';
 const { ccclass, property } = _decorator;
 
 @ccclass('ResLoader')
@@ -35,6 +36,15 @@ export class ResLoader extends Component {
                 asset.decRef(true);
             }
         })
+    }
+
+    addUI<UI extends Component>(uiClass: Constructor<UI>) {
+        this.addAsset(getUIClassByUrl(uiClass), Prefab);
+        if (typeof uiClass['R'] === "function") {
+            (uiClass['R'] as Function).call(uiClass, this);
+        }
+        return this;
+
     }
 
     /** 释放已加载资源的引用计数 */

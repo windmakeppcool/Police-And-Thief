@@ -1,11 +1,13 @@
 import { _decorator, Canvas, Component, Node } from 'cc';
-import { registerBUrlByCfg, UIManager } from './core/ui/UIManager';
+import { UIManager } from './core/ui/UIManager';
 import { ResManager } from './core/res/ResManager';
 import { PrefabsCfg } from './auto/PrefabCfg';
 import { LoginCtrl } from './login/LoginCtrl';
+import { registerBUrlByCfg } from './core/res/ResConst';
+import { BoardBackgroundTiled } from './game/view/BoardBackgroundTiled';
 const { ccclass, property } = _decorator;
 
-declare global {const gCtrl: GCtrl};
+declare global { const gCtrl: GCtrl };
 
 
 @ccclass('GCtrl')
@@ -32,11 +34,13 @@ export class GCtrl extends Component {
         gCtrl.loginCtr.init();
 
         // 显示登录界面（传入登录成功回调函数）
-        gCtrl.loginCtr.showLogin(() => {
+        gCtrl.loginCtr.showLogin(async () => {
             console.log("登录成功");
+            // 通过 UIManager 打开棋盘背景，按其静态 viewLayer 自动挂到 Scene 层
+            await gCtrl.ui.open(BoardBackgroundTiled);
             params.releaseBoostFun();
         });
-        
+
     }
 
     protected onDestroy(): void {

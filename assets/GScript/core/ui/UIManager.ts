@@ -1,5 +1,7 @@
-import { _decorator, Canvas, ResolutionPolicy, Size, view, screen } from 'cc';
+import { _decorator, Canvas, ResolutionPolicy, Size, view, screen, Constructor, Component, instantiate, assetManager, Prefab, Node, UITransform } from 'cc';
 import { EViewLayer, MyLayer } from './EViewLayer';
+import { ResLoader } from '../res/ResLoader';
+import { getUIClassByUrl } from '../res/ResConst';
 const { ccclass, property } = _decorator;
 
 export const G_VIEW_SIZE = new Size(0, 0);
@@ -38,12 +40,27 @@ export class UIManager {
             this.m_Layers.push(new MyLayer(layer, this.m_Canvas, EViewLayer[layer]));
         }
     }
+
+    async open<UI extends Component>(uiClass: Constructor<UI> & {readonly viewLayer: EViewLayer;}): Promise<UI>  {
+        const viewLayer: EViewLayer = typeof (uiClass.viewLayer) == 'number' ? uiClass.viewLayer : EViewLayer.UI;
+        const resLoader = new ResLoader();
+        resLoader.addUI(uiClass);
+        await resLoader.load();
+        let ui = this.instantiate(uiClass);
+        this.m_Layers[viewLayer].node.addChild(ui.node);
+        ui.node.getComponent(UITransform).setContentSize(G_VIEW_SIZE.clone());
+        resLoader.autoRelease(ui);
+        return ui;
+    }
+
+    instantiate<UE extends Component>(ueClass: Constructor<UE>): UE {
+        let bUrl = getUIClassByUrl(ueClass);
+        let bundle = assetManager.getBundle(bUrl.bundleName);
+        let prefab: Prefab = bundle.get(bUrl.bundlePath, Prefab);
+        let node: Node = instantiate(prefab);
+        return (node.getComponent(ueClass as any) || node.addComponent(ueClass as any)) as any as UE;
+    }
+
 }
 
-const g_Key2Url = new Map<string, IBundleUrl>();
-export function registerBUrlByCfg(cfg: {[uiClassName: string]: IBundleUrl}) {
-    for (let uiClassName in cfg) {
-        console.log(`注册预制体: ${uiClassName}`);
-        g_Key2Url.set(uiClassName, cfg[uiClassName]);
-    }
-}
+

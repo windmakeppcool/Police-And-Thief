@@ -1,7 +1,7 @@
 import { AudioManager } from "db://assets/GScript/core/audio/AudioManager";
 import { BL } from "db://assets/GScript/core/res/ResConst";
 
-const B = (m: string) => BL(`Login\Audio\${m}`, "LoginBN");
+const B = (m: string) => BL(`Res/Audio/${m}`, "LoginBN");
 
 export const LoginMusic = {
     bgm: B("background"),

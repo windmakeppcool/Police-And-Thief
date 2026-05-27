@@ -2,6 +2,7 @@ import { _decorator, Canvas, Component, Node } from 'cc';
 import { registerBUrlByCfg, UIManager } from './core/ui/UIManager';
 import { ResManager } from './core/res/ResManager';
 import { PrefabsCfg } from './auto/PrefabCfg';
+import { LoginCtrl } from 'db://assets/Login/LoginCtrl';
 const { ccclass, property } = _decorator;
 
 declare global {const gCtrl: GCtrl};
@@ -11,6 +12,7 @@ declare global {const gCtrl: GCtrl};
 export class GCtrl extends Component {
     readonly ui = new UIManager();
     readonly res = new ResManager();
+    readonly loginCtr = new LoginCtrl();
 
     async init(params: {canvas2d: Canvas}) {
         (globalThis as any)["gCtrl"] = this;
@@ -22,6 +24,9 @@ export class GCtrl extends Component {
 
         // 提前注册预制体信息
         registerBUrlByCfg(PrefabsCfg);
+
+        // 登录模块初始化
+        gCtrl.loginCtr.init();
         
     }
 

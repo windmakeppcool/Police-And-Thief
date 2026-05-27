@@ -14,7 +14,10 @@ export class GCtrl extends Component {
     readonly res = new ResManager();
     readonly loginCtr = new LoginCtrl();
 
-    async init(params: {canvas2d: Canvas}) {
+    async init(params: {
+        canvas2d: Canvas,
+        releaseBoostFun: Function,
+    }) {
         (globalThis as any)["gCtrl"] = this;
         if (!params.canvas2d) {
             console.error(`请在GCtrl组件添加到Canvas组件上`);
@@ -27,6 +30,12 @@ export class GCtrl extends Component {
 
         // 登录模块初始化
         gCtrl.loginCtr.init();
+
+        // 显示登录界面（传入登录成功回调函数）
+        gCtrl.loginCtr.showLogin(() => {
+            console.log("登录成功");
+            params.releaseBoostFun();
+        });
         
     }
 

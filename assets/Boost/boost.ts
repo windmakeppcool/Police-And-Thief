@@ -46,9 +46,6 @@ export class boost extends Component {
             })
         });
     }
-
-
-
 }
 
 

@@ -2,7 +2,7 @@ import { _decorator, Canvas, Component, Node } from 'cc';
 import { registerBUrlByCfg, UIManager } from './core/ui/UIManager';
 import { ResManager } from './core/res/ResManager';
 import { PrefabsCfg } from './auto/PrefabCfg';
-import { LoginCtrl } from './game/login/LoginCtrl';
+import { LoginCtrl } from './login/LoginCtrl';
 const { ccclass, property } = _decorator;
 
 declare global {const gCtrl: GCtrl};

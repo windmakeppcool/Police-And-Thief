@@ -1,5 +1,5 @@
-import { AudioManager } from "../../core/audio/AudioManager";
-import { BL } from "../../core/res/ResConst";
+import { AudioManager } from "../core/audio/AudioManager";
+import { BL } from "../core/res/ResConst";
 
 const B = (m: string) => BL(`Res/Audio/${m}`, "LoginBN");
 

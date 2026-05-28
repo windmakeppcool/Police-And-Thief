@@ -11,5 +11,5 @@
     "outDir": "dist",
     "rootDir": "."
   },
-  "include": ["assets/scripts/**/*.ts", "tools/**/*.ts"]
+  "include": ["assets/scripts/core/**/*.ts", "assets/scripts/game/**/*.ts", "assets/scripts/platform/**/*.ts", "tools/**/*.ts"]
 }

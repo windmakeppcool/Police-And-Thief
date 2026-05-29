@@ -18,6 +18,9 @@ export class BoardGridView extends BaseGridView {
     protected start(): void {
         const session = new GameSession(EXAMPLE_SHAPES, EXAMPLE_LEVEL);
         this.resizeToGrid();
+        // const ui = this.getComponent(UITransform)!;
+        // ui.setAnchorPoint(0.5, 0.5);
+        // this.node.setPosition(0, 0, 0);
         this.renderGrid(session);
 
     }

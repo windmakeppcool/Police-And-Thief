@@ -15,7 +15,7 @@ export const EXAMPLE_SHAPES: ShapeCatalog = {
 
 export const EXAMPLE_LEVEL: LevelData = {
   id: "dev_level_001",
-  board: { width: 3, height: 3 },
+  board: { width: 6, height: 6 },
   thief: { x: 1, y: 1 },
   buildings: [],
   policeInventory: [{ shapeId: "police_1x1", count: 4 }]

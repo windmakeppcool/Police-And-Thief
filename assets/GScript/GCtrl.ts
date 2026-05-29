@@ -5,6 +5,8 @@ import { PrefabsCfg } from './auto/PrefabCfg';
 import { LoginCtrl } from './login/LoginCtrl';
 import { registerBUrlByCfg } from './core/res/ResConst';
 import { BoardBackgroundTiled } from './game/view/BoardBackgroundTiled';
+import { type PlatformAdapter } from './core/platform/PlatformAdapter';
+import { createPlatformAdapter } from './core/platform/PlatformFactory';
 const { ccclass, property } = _decorator;
 
 declare global { const gCtrl: GCtrl };
@@ -15,12 +17,15 @@ export class GCtrl extends Component {
     readonly ui = new UIManager();
     readonly res = new ResManager();
     readonly loginCtr = new LoginCtrl();
+    readonly platform: PlatformAdapter = createPlatformAdapter();
 
     async init(params: {
         canvas2d: Canvas,
         releaseBoostFun: Function,
     }) {
         (globalThis as any)["gCtrl"] = this;
+        await this.platform.init();
+        this.platform.reportEvent?.("game_boot", { version: "dev" });
         if (!params.canvas2d) {
             console.error(`请在GCtrl组件添加到Canvas组件上`);
             return;

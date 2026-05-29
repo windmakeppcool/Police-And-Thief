@@ -4,6 +4,13 @@
 
   /* Add your custom configuration here. */
   "compilerOptions": {
-    "strict": false
-  }
+    "strict": false,
+    "skipLibCheck": true,
+    "lib": ["ES2020", "DOM"]
+  },
+  "exclude": [
+    "node_modules",
+    "tests",
+    "vitest.config.ts"
+  ]
 }

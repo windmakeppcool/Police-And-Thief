@@ -3,23 +3,22 @@ import { type Coord } from '../domain/GameTypes';
 import { BoardGridView } from './BoardGridView';
 const { ccclass, property } = _decorator;
 
+
+
+
+
 @ccclass('BaseGridView')
 export class BaseGridView extends Component {
     @property(Number) public cellPadding = 2;
-
     /** 用于纯色填充的白色 SpriteFrame，在 Cocos 编辑器里手动拖入 */
     @property(SpriteFrame) public whiteFrame: SpriteFrame | null = null;
-
     protected cellNodes: Node[] = [];
 
-    /** 清理已生成的格子节点 */
-    protected clearCellNodes(): void {
-        for (const n of this.cellNodes) {
-            if (n.isValid) n.destroy();
-        }
-        this.cellNodes = [];
-    }
-
+    protected COLOR_EMPTY = new Color(230, 233, 240, 255);  // 浅灰蓝
+    protected COLOR_BUILDING = new Color(148, 163, 184, 255);  // 暖灰
+    protected COLOR_THIEF = new Color(239, 68, 68, 255);    // 红
+    protected COLOR_POLICE = new Color(59, 130, 246, 255);   // 蓝
+    protected COLOR_STROKE = new Color(203, 213, 225, 255);  // 淡边框
     /**
      * 基础格子绘制：外层 = borderColor，内层 = fillColor。
      * @param gridView 棋盘坐标 -> 本地坐标转换
@@ -73,5 +72,17 @@ export class BaseGridView extends Component {
 
         this.cellNodes.push(borderNode);
         return borderNode;
+    }
+
+    /** 清理已生成的格子节点 */
+    protected clearCellNodes(): void {
+        for (const n of this.cellNodes) {
+            if (n.isValid) n.destroy();
+        }
+        this.cellNodes = [];
+    }
+
+    onDestroy() {
+        this.clearCellNodes();
     }
 }

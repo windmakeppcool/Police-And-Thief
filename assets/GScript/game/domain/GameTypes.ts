@@ -13,7 +13,9 @@ export type Rotation = 0 | 90 | 180 | 270;
 export enum PieceType {
   Thief = "thief",
   Police = "police",
-  Building = "building"
+  Building = "building",
+  Empty = "empty",
+  Stroke = "stroke"
 }
 
 export type PieceShape = Readonly<{

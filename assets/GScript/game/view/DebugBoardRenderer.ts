@@ -20,7 +20,7 @@ export class DebugBoardRenderer extends BaseGridView {
             console.error('[DebugBoardRenderer] whiteFrame 未绑定，请在编辑器里把白色 SpriteFrame 拖到组件上');
             return;
         }
-        this.renderSession(session, shapes);
+        // this.renderSession(session, shapes);
     }
 
     /** 兼容旧调用名 */

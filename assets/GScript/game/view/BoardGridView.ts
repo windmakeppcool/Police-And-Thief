@@ -2,6 +2,8 @@ import { _decorator, Component, Node, Size, SpriteFrame, UITransform, Vec3 } fro
 import { type BoardSize, type Coord } from '../domain/GameTypes';
 import { EViewLayer } from '../../core/ui/EViewLayer';
 import { BaseGridView } from './BaseGridView';
+import { GameSession } from '../service/GameSession';
+import { EXAMPLE_LEVEL, EXAMPLE_SHAPES } from '../level/LevelExamples';
 const { ccclass, property } = _decorator;
 
 @ccclass('BoardGridView')
@@ -14,7 +16,10 @@ export class BoardGridView extends BaseGridView {
     gridSize: number = 6;
 
     protected start(): void {
+        const session = new GameSession(EXAMPLE_SHAPES, EXAMPLE_LEVEL);
         this.resizeToGrid();
+        this.renderGrid(session);
+
     }
 
     private resizeToGrid() {
@@ -33,5 +38,15 @@ export class BoardGridView extends BaseGridView {
     resizeBoard(board: BoardSize): void {
         const transform = this.getComponent(UITransform) || this.addComponent(UITransform);
         transform.setContentSize(board.width * this.cellSize, board.height * this.cellSize);
+    }
+
+    renderGrid(session: GameSession) {
+        const level = session.getLevel();
+        this.resizeBoard(level.board);
+        for (let y = 0; y < this.gridSize; y++) {
+            for (let x = 0; x < this.gridSize; x++) {
+                this.addCellNode(this, level.board, { x, y }, this.COLOR_EMPTY, this.COLOR_STROKE);
+            }
+        }
     }
 }

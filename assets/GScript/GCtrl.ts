@@ -4,9 +4,9 @@ import { ResManager } from './core/res/ResManager';
 import { PrefabsCfg } from './auto/PrefabCfg';
 import { LoginCtrl } from './login/LoginCtrl';
 import { registerBUrlByCfg } from './core/res/ResConst';
-import { BoardBackgroundTiled } from './game/view/BoardBackgroundTiled';
 import { type PlatformAdapter } from './core/platform/PlatformAdapter';
 import { createPlatformAdapter } from './core/platform/PlatformFactory';
+import { BoardGridView } from './game/view/BoardGridView';
 const { ccclass, property } = _decorator;
 
 declare global { const gCtrl: GCtrl };
@@ -42,7 +42,7 @@ export class GCtrl extends Component {
         gCtrl.loginCtr.showLogin(async () => {
             // 通过 UIManager 打开棋盘背景，按其静态 viewLayer 自动挂到 Scene 层
             await gCtrl.res.loadBundleAsync("GameBN");
-            await gCtrl.ui.open(BoardBackgroundTiled);
+            await gCtrl.ui.open(BoardGridView);
             console.log("登录成功");
             params.releaseBoostFun();
         });

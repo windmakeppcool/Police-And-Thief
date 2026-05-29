@@ -17,7 +17,7 @@ export class GameController extends Component {
     }
 
     protected async start(): Promise<void> {
-        await this.renderer.initAndRender(this.session, EXAMPLE_SHAPES);
+        this.renderer.render(this.session, EXAMPLE_SHAPES);
         this.debugSolveExampleLevel();
     }
 

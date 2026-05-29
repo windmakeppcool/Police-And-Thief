@@ -1,7 +1,7 @@
 [
   {
     "__type__": "cc.Prefab",
-    "_name": "BoardBackgroundTiled",
+    "_name": "BoardGrid",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_native": "",
@@ -13,7 +13,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "BoardBackgroundTiled",
+    "_name": "BoardGrid",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": null,
@@ -69,27 +69,6 @@
     "_id": ""
   },
   {
-    "__type__": "fe069DmY4NJzZ/DPKs8TuHh",
-    "_name": "",
-    "_objFlags": 0,
-    "__editorExtras__": {},
-    "node": {
-      "__id__": 1
-    },
-    "_enabled": true,
-    "__prefab": {
-      "__id__": 3
-    },
-    "gridSizeH": 6,
-    "gridSizeW": 6,
-    "tilePixelSize": 64,
-    "_id": ""
-  },
-  {
-    "__type__": "cc.CompPrefabInfo",
-    "fileId": "22k6vmO4NK2KdHlQCRkoyK"
-  },
-  {
     "__type__": "cc.UITransform",
     "_name": "",
     "_objFlags": 0,
@@ -99,7 +78,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 5
+      "__id__": 3
     },
     "_contentSize": {
       "__type__": "cc.Size",
@@ -127,7 +106,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 7
+      "__id__": 5
     },
     "_id": ""
   },
@@ -145,7 +124,7 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 9
+      "__id__": 7
     },
     "_id": ""
   },
@@ -163,7 +142,12 @@
     },
     "_enabled": true,
     "__prefab": {
-      "__id__": 11
+      "__id__": 9
+    },
+    "cellPadding": 2,
+    "whiteFrame": {
+      "__uuid__": "210dc6fc-c499-4b84-85e4-5feb1c4eeec7@f9941",
+      "__expectedType__": "cc.SpriteFrame"
     },
     "cellSize": 64,
     "cellRoot": null,
@@ -172,6 +156,29 @@
   {
     "__type__": "cc.CompPrefabInfo",
     "fileId": "baku9za0FGObWlWT0gAJge"
+  },
+  {
+    "__type__": "9994cmZSjZGQ61dPLnncj0i",
+    "_name": "",
+    "_objFlags": 0,
+    "__editorExtras__": {},
+    "node": {
+      "__id__": 1
+    },
+    "_enabled": true,
+    "__prefab": {
+      "__id__": 11
+    },
+    "cellPadding": 2,
+    "whiteFrame": {
+      "__uuid__": "210dc6fc-c499-4b84-85e4-5feb1c4eeec7@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "_id": ""
+  },
+  {
+    "__type__": "cc.CompPrefabInfo",
+    "fileId": "6ddRYvDsZACqt1YGiCTkO0"
   },
   {
     "__type__": "cc.PrefabInfo",

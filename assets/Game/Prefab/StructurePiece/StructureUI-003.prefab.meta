@@ -2,12 +2,12 @@
   "ver": "1.1.50",
   "importer": "prefab",
   "imported": true,
-  "uuid": "b5886bda-0ef2-40f2-ae8c-9a9dfbd95fce",
+  "uuid": "c676d1af-1c1e-4657-86a9-6ec280803052",
   "files": [
     ".json"
   ],
   "subMetas": {},
   "userData": {
-    "syncNodeName": "StructureUI"
+    "syncNodeName": "StructureUI-003"
   }
 }

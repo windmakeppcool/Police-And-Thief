@@ -18,7 +18,9 @@ export type WinCheckResult = Readonly<{
 
 export class GameSession {
   private placedPolice: PlacedPiece[] = [];
+  private placedStructures: PlacedPiece[] = [];
   private nextPoliceId = 1;
+  private nextStructureId = 1;
 
   constructor(
     private readonly shapes: ShapeCatalog,
@@ -31,6 +33,41 @@ export class GameSession {
 
   getPlacedPolice(): readonly PlacedPiece[] {
     return this.placedPolice;
+  }
+
+  getPlacedStructures(): readonly PlacedPiece[] {
+    return this.placedStructures;
+  }
+
+  getAllPlacedPieces(): readonly PlacedPiece[] {
+    return [...this.level.buildings, ...this.placedStructures, ...this.placedPolice];
+  }
+
+  placeStructure(input: PlacePoliceInput): MoveResult {
+    const shape = this.shapes[input.shapeId];
+    if (!shape) {
+      return { ok: false, reason: "unknown_shape" };
+    }
+    if (shape.type !== PieceType.Building) {
+      return { ok: false, reason: "not_building_shape" };
+    }
+
+    this.placedStructures.push({
+      id: `structure_${this.nextStructureId++}`,
+      shapeId: input.shapeId,
+      type: PieceType.Building,
+      origin: input.origin,
+      rotation: input.rotation
+    });
+
+    return { ok: true, reason: "ok" };
+  }
+
+  removeStructure(id: string): void {
+    const idx = this.placedStructures.findIndex(p => p.id === id);
+    if (idx >= 0) {
+      this.placedStructures.splice(idx, 1);
+    }
   }
 
   placePolice(input: PlacePoliceInput): MoveResult {

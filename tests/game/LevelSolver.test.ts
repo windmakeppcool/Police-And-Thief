@@ -7,9 +7,9 @@ describe("buildPlacementCandidates", () => {
   it("builds in-bounds candidate placements for available police inventory", () => {
     const candidates = buildPlacementCandidates(EXAMPLE_SHAPES, EXAMPLE_LEVEL, [0]);
 
-    expect(candidates).toHaveLength(9);
+    expect(candidates).toHaveLength(36);
     expect(candidates).toContainEqual({ shapeId: "police_1x1", origin: { x: 0, y: 0 }, rotation: 0 });
-    expect(candidates).toContainEqual({ shapeId: "police_1x1", origin: { x: 2, y: 2 }, rotation: 0 });
+    expect(candidates).toContainEqual({ shapeId: "police_1x1", origin: { x: 5, y: 5 }, rotation: 0 });
   });
 });
 

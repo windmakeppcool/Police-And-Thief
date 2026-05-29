@@ -13,11 +13,11 @@ export class GameController extends Component {
     protected onLoad(): void {
         this.session = new GameSession(EXAMPLE_SHAPES, EXAMPLE_LEVEL);
         this.renderer = this.getComponent(DebugBoardRenderer) || this.addComponent(DebugBoardRenderer);
-        this.renderer.renderSession(this.session, EXAMPLE_SHAPES);
         gCtrl.platform.reportEvent?.('game_session_created', { levelId: EXAMPLE_LEVEL.id });
     }
 
-    protected start(): void {
+    protected async start(): Promise<void> {
+        await this.renderer.initAndRender(this.session, EXAMPLE_SHAPES);
         this.debugSolveExampleLevel();
     }
 
@@ -32,7 +32,7 @@ export class GameController extends Component {
             return;
         }
         const win = this.session.checkWin();
-        this.renderer.renderSession(this.session, EXAMPLE_SHAPES);
+        this.renderer.refreshRender(this.session, EXAMPLE_SHAPES);
         gCtrl.platform.reportEvent?.('police_placed', { won: win.won });
     }
 
@@ -55,7 +55,7 @@ export class GameController extends Component {
         }
 
         const win = this.session.checkWin();
-        this.renderer.renderSession(this.session, EXAMPLE_SHAPES);
+        this.renderer.refreshRender(this.session, EXAMPLE_SHAPES);
         console.log('[GameController] 最终胜负:', win);
     }
 

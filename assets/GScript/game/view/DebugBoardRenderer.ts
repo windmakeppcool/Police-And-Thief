@@ -1,4 +1,4 @@
-import { _decorator, Color, Component, Node, Size, Sprite, SpriteFrame, Texture2D, UITransform } from 'cc';
+import { _decorator, Color, Component, Layers, Node, Size, Sprite, SpriteFrame, Texture2D, UITransform } from 'cc';
 import { getAbsoluteCells } from '../domain/PieceGeometry';
 import { type Coord, type ShapeCatalog } from '../domain/GameTypes';
 import { GameSession } from '../service/GameSession';
@@ -97,6 +97,7 @@ export class DebugBoardRenderer extends Component {
 
         // 外层 = 边框色
         const borderNode = new Node(`cell_${coord.x}_${coord.y}_border`);
+        borderNode.layer = Layers.Enum.UI_2D;
         borderNode.parent = this.node;
         const borderTrans = borderNode.addComponent(UITransform);
         borderTrans.setContentSize(new Size(borderSize, borderSize));
@@ -108,6 +109,7 @@ export class DebugBoardRenderer extends Component {
 
         // 内层 = 填充色
         const innerNode = new Node(`cell_${coord.x}_${coord.y}_fill`);
+        innerNode.layer = Layers.Enum.UI_2D;
         innerNode.parent = borderNode;
         const innerTrans = innerNode.addComponent(UITransform);
         innerTrans.setContentSize(new Size(innerSize, innerSize));

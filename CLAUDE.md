@@ -69,8 +69,9 @@ Puzzle rules are pure TypeScript and must not import `cc`:
 
 Cocos-facing glue lives separately:
 
-- `assets/GScript/game/controller/GameController.ts` creates a `GameSession` and bridges Cocos events to pure game logic.
+- `assets/GScript/game/controller/GameController.ts` creates a `GameSession`, runs the example solver during `start()`, and bridges Cocos events to pure game logic.
 - `assets/GScript/game/view/BoardGridView.ts` maps board coordinates to Cocos local positions and sizes board nodes.
+- `assets/GScript/game/view/DebugBoardRenderer.ts` draws a temporary colored debug board using `Graphics` so Cocos Preview can show empty cells, police, buildings, and the thief without final art assets.
 - `assets/GScript/game/view/BoardBackgroundTiled.ts` displays the current tiled board background on `EViewLayer.Scene`.
 
 ## Platform architecture

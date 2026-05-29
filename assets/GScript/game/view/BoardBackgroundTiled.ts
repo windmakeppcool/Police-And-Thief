@@ -8,8 +8,8 @@ export class BoardBackgroundTiled extends Component {
     static readonly viewLayer = EViewLayer.Scene;
 
     @property({ type: SpriteFrame }) public tileSpriteFrame: SpriteFrame | null = null;
-    @property(Number) public gridSizeH: number = 8;
-    @property(Number) public gridSizeW: number = 8;
+    @property(Number) public gridSizeH: number = 6;
+    @property(Number) public gridSizeW: number = 6;
     @property(Number) public tilePixelSize: number = 64;
 
     protected onLoad(): void {

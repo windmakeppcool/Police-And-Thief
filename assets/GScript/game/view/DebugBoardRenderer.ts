@@ -125,7 +125,7 @@ export class DebugBoardRenderer extends Component {
                 console.error('[DebugBoardRenderer] GameBN bundle not loaded');
                 return;
             }
-            bundle.load('Image/white', SpriteFrame, (err, frame) => {
+            bundle.load('image/white', SpriteFrame, (err, frame) => {
                 if (err || !frame) {
                     console.error('[DebugBoardRenderer] failed to load white texture:', err);
                     return;

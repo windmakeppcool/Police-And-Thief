@@ -5,11 +5,11 @@ import { GameSession } from '../service/GameSession';
 import { BoardGridView } from './BoardGridView';
 const { ccclass, property } = _decorator;
 
-const COLOR_EMPTY    = new Color(230, 233, 240, 255);  // 浅灰蓝
+const COLOR_EMPTY = new Color(230, 233, 240, 255);  // 浅灰蓝
 const COLOR_BUILDING = new Color(148, 163, 184, 255);  // 暖灰
-const COLOR_THIEF    = new Color(239, 68, 68, 255);    // 红
-const COLOR_POLICE   = new Color(59, 130, 246, 255);   // 蓝
-const COLOR_STROKE   = new Color(203, 213, 225, 255);  // 淡边框
+const COLOR_THIEF = new Color(239, 68, 68, 255);    // 红
+const COLOR_POLICE = new Color(59, 130, 246, 255);   // 蓝
+const COLOR_STROKE = new Color(203, 213, 225, 255);  // 淡边框
 
 @ccclass('DebugBoardRenderer')
 export class DebugBoardRenderer extends Component {
@@ -21,7 +21,12 @@ export class DebugBoardRenderer extends Component {
     /** 加载白色纹理后开始渲染 */
     async initAndRender(session: GameSession, shapes: ShapeCatalog): Promise<void> {
         if (!this._whiteFrame) {
-            this._whiteFrame = await this.loadWhiteFrame();
+            try {
+                this._whiteFrame = await this.loadWhiteFrame();
+            } catch (e) {
+                console.error('[DebugBoardRenderer] failed to init:', e);
+                return;
+            }
         }
         this.renderSession(session, shapes);
     }
@@ -87,50 +92,75 @@ export class DebugBoardRenderer extends Component {
         borderColor: Color
     ): void {
         const center = gridView.boardToLocal(coord, board);
-        const borderSize = gridView.cellSize - this.cellPadding * 2;
-        const innerSize = borderSize - 4;
+        const borderSize = 64;
+        const innerSize = Math.max(0, borderSize - this.cellPadding * 2);
 
         // 外层 = 边框色
         const borderNode = new Node(`cell_${coord.x}_${coord.y}_border`);
         borderNode.layer = Layers.Enum.UI_2D;
         borderNode.parent = this.node;
-        const borderTrans = borderNode.addComponent(UITransform);
-        borderTrans.setContentSize(new Size(borderSize, borderSize));
         const borderSprite = borderNode.addComponent(Sprite);
-        borderSprite.spriteFrame = sf;
-        borderSprite.color = borderColor;
         borderSprite.sizeMode = Sprite.SizeMode.CUSTOM;
         borderSprite.trim = false;
+        borderSprite.spriteFrame = sf;
+        borderSprite.color = borderColor;
+        const borderTrans = borderNode.getComponent(UITransform) || borderNode.addComponent(UITransform);
+        borderTrans.setContentSize(new Size(64, 64));
         borderNode.setPosition(center.x, center.y, 0);
 
         // 内层 = 填充色
         const innerNode = new Node(`cell_${coord.x}_${coord.y}_fill`);
         innerNode.layer = Layers.Enum.UI_2D;
         innerNode.parent = borderNode;
-        const innerTrans = innerNode.addComponent(UITransform);
-        innerTrans.setContentSize(new Size(innerSize, innerSize));
         const innerSprite = innerNode.addComponent(Sprite);
-        innerSprite.spriteFrame = sf;
-        innerSprite.color = fillColor;
         innerSprite.sizeMode = Sprite.SizeMode.CUSTOM;
         innerSprite.trim = false;
+        innerSprite.spriteFrame = sf;
+        innerSprite.color = fillColor;
+        const innerTrans = innerNode.getComponent(UITransform) || innerNode.addComponent(UITransform);
+        innerTrans.setContentSize(new Size(innerSize, innerSize));
 
         this.cellNodes.push(borderNode);
     }
 
-    private loadWhiteFrame(): Promise<SpriteFrame> {
+    private async loadWhiteFrame(): Promise<SpriteFrame> {
+        const bundle = await this.getOrLoadBundle('GameBN');
+        if (!bundle) {
+            throw new Error('[DebugBoardRenderer] GameBN bundle not loaded');
+        }
+
+        const candidates = ['Image/white/spriteFrame', 'Image/white'];
+        for (const path of candidates) {
+            const frame = await this.loadFromBundle(bundle, path, SpriteFrame);
+            if (frame) return frame;
+        }
+
+        throw new Error(`[DebugBoardRenderer] failed to load white texture, tried: ${candidates.join(', ')}`);
+    }
+
+    private getOrLoadBundle(bundleName: string): Promise<ReturnType<typeof assetManager.getBundle>> {
+        const existed = assetManager.getBundle(bundleName);
+        if (existed) return Promise.resolve(existed);
         return new Promise((resolve) => {
-            const bundle = assetManager.getBundle('GameBN');
-            if (!bundle) {
-                console.error('[DebugBoardRenderer] GameBN bundle not loaded');
-                return;
-            }
-            bundle.load('image/white', SpriteFrame, (err, frame) => {
-                if (err || !frame) {
-                    console.error('[DebugBoardRenderer] failed to load white texture:', err);
+            assetManager.loadBundle(bundleName, (err, bundle) => {
+                if (err || !bundle) {
+                    console.error(`[DebugBoardRenderer] failed to load bundle ${bundleName}:`, err);
+                    resolve(null);
                     return;
                 }
-                resolve(frame);
+                resolve(bundle);
+            });
+        });
+    }
+
+    private loadFromBundle<T>(bundle: NonNullable<ReturnType<typeof assetManager.getBundle>>, path: string, type: new () => T): Promise<T | null> {
+        return new Promise((resolve) => {
+            bundle.load(path, type as any, (err, asset) => {
+                if (err || !asset) {
+                    resolve(null);
+                    return;
+                }
+                resolve(asset as T);
             });
         });
     }

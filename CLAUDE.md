@@ -64,6 +64,8 @@ Puzzle rules are pure TypeScript and must not import `cc`:
 - `assets/GScript/game/rules/WinCondition.ts` converts escape-path results into win state.
 - `assets/GScript/game/service/GameSession.ts` owns the current level state, placed police pieces, undo, and win checks.
 - `assets/GScript/game/level/LevelExamples.ts` contains temporary development/test level data.
+- `assets/GScript/game/level/LevelValidator.ts` validates shape catalogs and level data before runtime use.
+- `assets/GScript/game/level/LevelSolver.ts` brute-force searches small levels to verify that at least one winning police placement sequence exists.
 
 Cocos-facing glue lives separately:
 

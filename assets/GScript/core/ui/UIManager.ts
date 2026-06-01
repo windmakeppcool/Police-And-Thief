@@ -41,6 +41,10 @@ export class UIManager {
         }
     }
 
+    getLayer(layer: EViewLayer): Node {
+        return this.m_Layers[layer].node;
+    }
+
     async open<UI extends Component>(uiClass: Constructor<UI> & { readonly viewLayer: EViewLayer; }): Promise<UI> {
         const viewLayer: EViewLayer = typeof (uiClass.viewLayer) == 'number' ? uiClass.viewLayer : EViewLayer.UI;
         const resLoader = new ResLoader();
@@ -48,7 +52,10 @@ export class UIManager {
         await resLoader.load();
         let ui = this.instantiate(uiClass);
         this.m_Layers[viewLayer].node.addChild(ui.node);
-        ui.node.getComponent(UITransform).setContentSize(G_VIEW_SIZE.clone());
+        const uiTransform = ui.node.getComponent(UITransform);
+        if (uiTransform) {
+            uiTransform.setContentSize(G_VIEW_SIZE.clone());
+        }
         resLoader.autoRelease(ui);
         return ui;
     }

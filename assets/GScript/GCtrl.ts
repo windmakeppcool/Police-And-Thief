@@ -6,7 +6,7 @@ import { LoginCtrl } from './login/LoginCtrl';
 import { registerBUrlByCfg } from './core/res/ResConst';
 import { type PlatformAdapter } from './core/platform/PlatformAdapter';
 import { createPlatformAdapter } from './core/platform/PlatformFactory';
-import { BoardGridView } from './game/view/BoardGridView';
+import { GameController } from './game/controller/GameController';
 const { ccclass, property } = _decorator;
 
 declare global { const gCtrl: GCtrl };
@@ -40,9 +40,9 @@ export class GCtrl extends Component {
 
         // 显示登录界面（传入登录成功回调函数）
         gCtrl.loginCtr.showLogin(async () => {
-            // 通过 UIManager 打开棋盘背景，按其静态 viewLayer 自动挂到 Scene 层
+            // 通过 UIManager 打开登录成功后的游戏控制器
             await gCtrl.res.loadBundleAsync("GameBN");
-            await gCtrl.ui.open(BoardGridView);
+            await gCtrl.ui.open(GameController);
             console.log("登录成功");
             params.releaseBoostFun();
         });

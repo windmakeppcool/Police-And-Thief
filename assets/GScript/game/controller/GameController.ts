@@ -6,7 +6,8 @@ import { BoardGridView } from '../view/BoardGridView';
 import { StructureDraggable } from '../view/StructureDraggable';
 import { PrefabsCfg } from '../../auto/PrefabCfg';
 import { type Coord, type Rotation } from '../domain/GameTypes';
-const { ccclass } = _decorator;
+import { EViewLayer } from '../../core/ui/EViewLayer';
+const { ccclass, property } = _decorator;
 
 const STRUCTURE_DEFS: { key: keyof typeof PrefabsCfg; shapeId: string }[] = [
     { key: 'Structure1UI', shapeId: 'building_001' },
@@ -17,19 +18,34 @@ const STRUCTURE_DEFS: { key: keyof typeof PrefabsCfg; shapeId: string }[] = [
 
 @ccclass('GameController')
 export class GameController extends Component {
+    static readonly viewLayer = EViewLayer.Scene;
+
     private session: GameSession = null!;
-    private renderer: BoardGridView = null!;
+    private boardGridView: BoardGridView = null!;
     private structures: StructureDraggable[] = [];
 
     protected onLoad(): void {
         this.session = new GameSession(EXAMPLE_SHAPES, EXAMPLE_LEVEL);
-        this.renderer = this.getComponent(BoardGridView) || this.addComponent(BoardGridView);
         gCtrl.platform.reportEvent?.('game_session_created', { levelId: EXAMPLE_LEVEL.id });
     }
 
-    protected start(): void {
-        this.renderer.renderGrid(this.session);
+    protected async start(): Promise<void> {
+        await this.createBoardGrid();
         this.initStructures();
+    }
+
+    private async createBoardGrid(): Promise<void> {
+        const bUrl = PrefabsCfg.BoardGridView;
+        const prefab = await gCtrl.res.loadAssetAsync(bUrl, Prefab);
+        if (!prefab) {
+            console.error('[GameController] Failed to load BoardGrid prefab');
+            return;
+        }
+
+        const node = instantiate(prefab);
+        node.parent = gCtrl.ui.getLayer(EViewLayer.Scene);
+        this.boardGridView = node.getComponent(BoardGridView)!;
+        this.boardGridView.renderGrid(this.session);
     }
 
     private async initStructures(): Promise<void> {
@@ -40,8 +56,8 @@ export class GameController extends Component {
         }
 
         const board = this.session.getLevel().board;
-        const cs = this.renderer.cellSize;
-        const grid = this.renderer;
+        const cs = this.boardGridView.cellSize;
+        const grid = this.boardGridView;
 
         const trayX = -(board.width * cs) / 2 - cs * 2;
         const spacing = cs * 2;
@@ -64,7 +80,7 @@ export class GameController extends Component {
             draggable.setHomePosition(homePos);
             draggable.structureId = `structure_${i + 1}`;
             draggable.shapeId = def.shapeId;
-            draggable.boardNode = this.renderer.node;
+            draggable.boardNode = this.boardGridView.node;
             draggable.boardGridView = grid;
             draggable.board = board;
             draggable.session = this.session;
@@ -81,24 +97,7 @@ export class GameController extends Component {
         }
     }
 
-    private loadPrefab(path: string): Promise<Prefab | null> {
-        const bundle = assetManager.getBundle('GameBN');
-        if (!bundle) return Promise.resolve(null);
 
-        const cached = bundle.get(path, Prefab);
-        if (cached) return Promise.resolve(cached);
-
-        return new Promise((resolve) => {
-            bundle.load(path, Prefab, (err, prefab) => {
-                if (err || !prefab) {
-                    console.error(`[GameController] prefab load failed: ${path}`, err);
-                    resolve(null);
-                    return;
-                }
-                resolve(prefab);
-            });
-        });
-    }
 
     placePoliceAtCenter(): void {
         const result = this.session.placePolice({
@@ -111,7 +110,7 @@ export class GameController extends Component {
             return;
         }
         const win = this.session.checkWin();
-        this.renderer.renderGrid(this.session);
+        this.boardGridView.renderGrid(this.session);
         gCtrl.platform.reportEvent?.('police_placed', { won: win.won });
     }
 
@@ -134,7 +133,7 @@ export class GameController extends Component {
         }
 
         const win = this.session.checkWin();
-        this.renderer.renderGrid(this.session);
+        this.boardGridView.renderGrid(this.session);
         console.log('[GameController] 最终胜负:', win);
     }
 

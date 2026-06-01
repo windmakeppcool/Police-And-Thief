@@ -43,7 +43,7 @@ export class GameSession {
     return [...this.level.buildings, ...this.placedStructures, ...this.placedPolice];
   }
 
-  placeStructure(input: PlacePoliceInput): MoveResult {
+  placeStructure(input: PlacePoliceInput & { id?: string }): MoveResult {
     const shape = this.shapes[input.shapeId];
     if (!shape) {
       return { ok: false, reason: "unknown_shape" };
@@ -52,13 +52,21 @@ export class GameSession {
       return { ok: false, reason: "not_building_shape" };
     }
 
-    this.placedStructures.push({
-      id: `structure_${this.nextStructureId++}`,
+    const id = input.id ?? `structure_${this.nextStructureId++}`;
+    const existed = this.placedStructures.findIndex(piece => piece.id === id);
+    const placed: PlacedPiece = {
+      id,
       shapeId: input.shapeId,
       type: PieceType.Building,
       origin: input.origin,
       rotation: input.rotation
-    });
+    };
+
+    if (existed >= 0) {
+      this.placedStructures[existed] = placed;
+    } else {
+      this.placedStructures.push(placed);
+    }
 
     return { ok: true, reason: "ok" };
   }

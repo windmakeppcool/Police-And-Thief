@@ -1,115 +1,157 @@
-import { _decorator, Component, Node, UITransform, Vec3, tween } from 'cc';
-import { type BoardSize, type Coord, type ShapeCatalog } from '../domain/GameTypes';
+import { _decorator, Component, EventTouch, Node, Size, UITransform, Vec3, tween } from 'cc';
+import { cellKey, isInsideBoard, PieceType, type BoardSize, type Coord, type Rotation, type ShapeCatalog } from '../domain/GameTypes';
 import { getAbsoluteCells } from '../domain/PieceGeometry';
 import { buildOccupancy } from '../domain/BoardOccupancy';
-import { isInsideBoard, cellKey } from '../domain/GameTypes';
 import { BoardGridView } from './BoardGridView';
 import { GameSession } from '../service/GameSession';
 const { ccclass, property } = _decorator;
 
-/** Callback when structure is successfully placed on the board */
-export type OnPlacedCallback = (shapeId: string, origin: Coord, rotation: 0) => void;
+export type OnPlacedCallback = (structureId: string, shapeId: string, origin: Coord, rotation: Rotation) => void;
 
 @ccclass('StructureDraggable')
 export class StructureDraggable extends Component {
     @property(String) public shapeId: string = '';
 
-    /** Set programmatically before use */
     public boardNode: Node | null = null;
     public boardGridView: BoardGridView | null = null;
     public board: BoardSize = { width: 6, height: 6 };
     public session: GameSession | null = null;
     public shapes: ShapeCatalog = {};
     public onPlaced: OnPlacedCallback | null = null;
+    public structureId: string = '';
+    public isPlaced: boolean = false;
 
     private _dragOffset: Vec3 = new Vec3();
     private _startPos: Vec3 = new Vec3();
+    private _homePos: Vec3 = new Vec3();
+    private _touchStartLocalPos: Vec3 = new Vec3();
+    private _rootToOriginOffset: Vec3 = new Vec3();
+    private _rotation: Rotation = 0;
     private _isDragging: boolean = false;
+    private _hasMoved: boolean = false;
 
-    /** Mark as placed (no longer draggable) */
-    public isPlaced: boolean = false;
+    public setHomePosition(pos: Vec3): void {
+        this._homePos.set(pos);
+    }
 
     protected onEnable(): void {
-        this.node.on(Node.EventType.TOUCH_START, this.onTouchStart, this, true);
-        this.node.on(Node.EventType.TOUCH_MOVE, this.onTouchMove, this, true);
-        this.node.on(Node.EventType.TOUCH_END, this.onTouchEnd, this, true);
-        this.node.on(Node.EventType.TOUCH_CANCEL, this.onTouchEnd, this, true);
+        this.ensureInteractiveArea();
+        this.node.on(Node.EventType.TOUCH_START, this.onTouchStart, this);
+        this.node.on(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
+        this.node.on(Node.EventType.TOUCH_END, this.onTouchEnd, this);
+        this.node.on(Node.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
     }
 
     protected onDisable(): void {
-        this.node.off(Node.EventType.TOUCH_START, this.onTouchStart, this, true);
-        this.node.off(Node.EventType.TOUCH_MOVE, this.onTouchMove, this, true);
-        this.node.off(Node.EventType.TOUCH_END, this.onTouchEnd, this, true);
-        this.node.off(Node.EventType.TOUCH_CANCEL, this.onTouchEnd, this, true);
+        this.node.off(Node.EventType.TOUCH_START, this.onTouchStart, this);
+        this.node.off(Node.EventType.TOUCH_MOVE, this.onTouchMove, this);
+        this.node.off(Node.EventType.TOUCH_END, this.onTouchEnd, this);
+        this.node.off(Node.EventType.TOUCH_CANCEL, this.onTouchEnd, this);
     }
 
-    private onTouchStart(event: any): void {
-        if (this.isPlaced || !this.boardNode) return;
+    private ensureInteractiveArea(): void {
+        const transform = this.node.getComponent(UITransform) || this.node.addComponent(UITransform);
+        if (this.node.children.length === 0) return;
+
+        let minX = Infinity;
+        let maxX = -Infinity;
+        let minY = Infinity;
+        let maxY = -Infinity;
+
+        for (const child of this.node.children) {
+            const childTransform = child.getComponent(UITransform);
+            if (!childTransform) continue;
+
+            const size = childTransform.contentSize;
+            const pos = child.position;
+            minX = Math.min(minX, pos.x - size.width / 2);
+            maxX = Math.max(maxX, pos.x + size.width / 2);
+            minY = Math.min(minY, pos.y - size.height / 2);
+            maxY = Math.max(maxY, pos.y + size.height / 2);
+        }
+
+        if (!Number.isFinite(minX)) return;
+
+        transform.setAnchorPoint(0.5, 0.5);
+        transform.setContentSize(new Size(maxX - minX, maxY - minY));
+        this._rootToOriginOffset.set(minX + 32, minY + 32, 0);
+    }
+
+    private onTouchStart(event: EventTouch): void {
+        if (!this.boardNode) return;
+
+        const parentTransform = this.node.parent?.getComponent(UITransform);
+        if (!parentTransform) return;
 
         this._isDragging = true;
+        this._hasMoved = false;
         this._startPos.set(this.node.position);
+        this._touchStartLocalPos.set(this.node.position);
 
-        // Record offset: touch world pos - node world pos
-        const touchWorldPos = event.getUILocation();
-        const nodeWorldPos = this.node.parent!.getComponent(UITransform)!
-            .convertToWorldSpaceAR(this.node.position);
-        this._dragOffset.set(
-            nodeWorldPos.x - touchWorldPos.x,
-            nodeWorldPos.y - touchWorldPos.y,
-            0
-        );
+        const touchPos = event.getUILocation();
+        const nodeWorldPos = parentTransform.convertToWorldSpaceAR(this.node.position);
+        this._dragOffset.set(nodeWorldPos.x - touchPos.x, nodeWorldPos.y - touchPos.y, 0);
 
-        // Elevate to top
         this.node.setSiblingIndex(999);
         event.propagationStopped = true;
     }
 
-    private onTouchMove(event: any): void {
+    private onTouchMove(event: EventTouch): void {
         if (!this._isDragging || !this.boardNode) return;
 
-        const touchWorldPos = event.getUILocation();
-        // Move node so its center follows the finger (maintaining initial grab offset)
-        const parentUITrans = this.node.parent!.getComponent(UITransform)!;
-        const newWorldPos = new Vec3(
-            touchWorldPos.x + this._dragOffset.x,
-            touchWorldPos.y + this._dragOffset.y,
-            0
-        );
-        const newLocalPos = parentUITrans.convertToNodeSpaceAR(newWorldPos);
-        this.node.setPosition(newLocalPos);
+        const parentTransform = this.node.parent?.getComponent(UITransform);
+        if (!parentTransform) return;
+
+        const touchPos = event.getUILocation();
+        const worldPos = new Vec3(touchPos.x + this._dragOffset.x, touchPos.y + this._dragOffset.y, 0);
+        const localPos = parentTransform.convertToNodeSpaceAR(worldPos);
+        if (Vec3.distance(localPos, this._touchStartLocalPos) > 8) {
+            this._hasMoved = true;
+        }
+        this.node.setPosition(localPos);
 
         event.propagationStopped = true;
     }
 
-    private onTouchEnd(event: any): void {
+    private onTouchEnd(event: EventTouch): void {
         if (!this._isDragging || !this.boardNode) return;
         this._isDragging = false;
 
+        if (!this._hasMoved) {
+            this.rotateClockwise();
+            event.propagationStopped = true;
+            return;
+        }
+
         const grid = this.boardGridView;
-        if (!grid) { this.snapBack(); return; }
+        const parentTransform = this.node.parent?.getComponent(UITransform);
+        const boardTransform = this.boardNode.getComponent(UITransform);
+        if (!grid || !parentTransform || !boardTransform) {
+            this.snapBack();
+            return;
+        }
 
-        // Convert structure's current world pos → board-local pos
-        const structWorldPos = this.node.parent!.getComponent(UITransform)!
-            .convertToWorldSpaceAR(this.node.position);
-        const boardUITrans = this.boardNode.getComponent(UITransform)!;
-        const boardLocalPos = boardUITrans.convertToNodeSpaceAR(structWorldPos);
+        const worldPos = parentTransform.convertToWorldSpaceAR(this.node.position);
+        const rootBoardLocalPos = boardTransform.convertToNodeSpaceAR(worldPos);
+        const originBoardLocalPos = rootBoardLocalPos.add(this.getRotatedRootToOriginOffset());
+        const origin = this.boardLocalToCoord(originBoardLocalPos, grid);
 
-        // Snap to nearest grid origin
-        const cs = grid.cellSize;
-        const originX = Math.round(boardLocalPos.x / cs);
-        const originY = Math.round(boardLocalPos.y / cs);
-        const origin: Coord = { x: originX, y: originY };
+        if (!this.isOriginInBoard(origin)) {
+            if (this.isPlaced) {
+                this.returnToHome();
+            } else {
+                this.snapBack();
+            }
+            event.propagationStopped = true;
+            return;
+        }
 
-        // Validate placement
         if (this.session && this.isValidPlacement(origin)) {
-            const snapPos = boardUITrans.convertToWorldSpaceAR(
-                new Vec3(originX * cs, originY * cs, 0)
-            );
-            const parentUITrans = this.node.parent!.getComponent(UITransform)!;
-            const snapLocal = parentUITrans.convertToNodeSpaceAR(snapPos);
-            this.node.setPosition(snapLocal);
+            const snapBoardPos = grid.boardToLocal(origin, this.board).subtract(this.getRotatedRootToOriginOffset());
+            const snapWorldPos = boardTransform.convertToWorldSpaceAR(snapBoardPos);
+            this.node.setPosition(parentTransform.convertToNodeSpaceAR(snapWorldPos));
             this.isPlaced = true;
-            this.onPlaced?.(this.shapeId, origin, 0);
+            this.onPlaced?.(this.structureId, this.shapeId, origin, this._rotation);
         } else {
             this.snapBack();
         }
@@ -117,37 +159,95 @@ export class StructureDraggable extends Component {
         event.propagationStopped = true;
     }
 
-    private isValidPlacement(origin: Coord): boolean {
-        if (!this.session || !this.boardNode) return false;
+    private rotateClockwise(): void {
+        this._rotation = this.nextRotation(this._rotation);
+        this.node.angle = this._rotation;
 
-        const shapes = this.shapes;
-        const board = this.board;
-        const level = this.session.getLevel();
+        if (!this.isPlaced) return;
+        const origin = this.getCurrentOrigin();
+        if (origin && this.isValidPlacement(origin)) {
+            this.onPlaced?.(this.structureId, this.shapeId, origin, this._rotation);
+        } else {
+            this._rotation = this.previousRotation(this._rotation);
+            this.node.angle = this._rotation;
+        }
+    }
 
-        // Build a temporary PlacedPiece for validation
+    private getCurrentOrigin(): Coord | null {
+        const grid = this.boardGridView;
+        const parentTransform = this.node.parent?.getComponent(UITransform);
+        const boardTransform = this.boardNode?.getComponent(UITransform);
+        if (!grid || !parentTransform || !boardTransform) return null;
+
+        const worldPos = parentTransform.convertToWorldSpaceAR(this.node.position);
+        const rootBoardLocalPos = boardTransform.convertToNodeSpaceAR(worldPos);
+        return this.boardLocalToCoord(rootBoardLocalPos.add(this.getRotatedRootToOriginOffset()), grid);
+    }
+
+    private getRotatedRootToOriginOffset(): Vec3 {
+        const x = this._rootToOriginOffset.x;
+        const y = this._rootToOriginOffset.y;
+        switch (this._rotation) {
+            case 0:
+                return new Vec3(x, y, 0);
+            case 90:
+                return new Vec3(y, -x, 0);
+            case 180:
+                return new Vec3(-x, -y, 0);
+            case 270:
+                return new Vec3(-y, x, 0);
+        }
+    }
+
+    private boardLocalToCoord(pos: Vec3, grid: BoardGridView): Coord {
+        const left = -((this.board.width - 1) * grid.cellSize) / 2;
+        const bottom = -((this.board.height - 1) * grid.cellSize) / 2;
+        return {
+            x: Math.round((pos.x - left) / grid.cellSize),
+            y: Math.round((pos.y - bottom) / grid.cellSize),
+        };
+    }
+
+    private isOriginInBoard(origin: Coord): boolean {
         const candidate = {
             id: 'candidate',
             shapeId: this.shapeId,
-            type: level.buildings[0]?.type ?? 'building' as any,
+            type: PieceType.Building,
             origin,
-            rotation: 0 as const,
+            rotation: this._rotation,
+        };
+        return getAbsoluteCells(this.shapes, candidate).every(cell => isInsideBoard(this.board, cell));
+    }
+
+    private returnToHome(): void {
+        this.session?.removeStructure(this.structureId);
+        this.isPlaced = false;
+        tween(this.node)
+            .to(0.2, { position: this._homePos.clone() }, { easing: 'quadOut' })
+            .start();
+    }
+
+    private isValidPlacement(origin: Coord): boolean {
+        if (!this.session) return false;
+
+        const level = this.session.getLevel();
+        const candidate = {
+            id: 'candidate',
+            shapeId: this.shapeId,
+            type: PieceType.Building,
+            origin,
+            rotation: this._rotation,
         };
 
-        // Check all cells are inside the board
-        const candidateCells = getAbsoluteCells(shapes, candidate);
+        const candidateCells = getAbsoluteCells(this.shapes, candidate);
         for (const cell of candidateCells) {
-            if (!isInsideBoard(board, cell)) return false;
-        }
-
-        // Check no collision with thief
-        for (const cell of candidateCells) {
+            if (!isInsideBoard(this.board, cell)) return false;
             if (cell.x === level.thief.x && cell.y === level.thief.y) return false;
         }
 
-        // Check no collision with existing buildings or placed police
-        const occupancy = buildOccupancy(shapes, [
+        const occupancy = buildOccupancy(this.shapes, [
             ...level.buildings,
-            ...this.session.getPlacedStructures(),
+            ...this.session.getPlacedStructures().filter(piece => piece.id !== this.structureId),
             ...this.session.getPlacedPolice(),
         ]);
         for (const cell of candidateCells) {
@@ -157,8 +257,21 @@ export class StructureDraggable extends Component {
         return true;
     }
 
+    private nextRotation(rotation: Rotation): Rotation {
+        if (rotation === 0) return 90;
+        if (rotation === 90) return 180;
+        if (rotation === 180) return 270;
+        return 0;
+    }
+
+    private previousRotation(rotation: Rotation): Rotation {
+        if (rotation === 0) return 270;
+        if (rotation === 90) return 0;
+        if (rotation === 180) return 90;
+        return 180;
+    }
+
     private snapBack(): void {
-        // Animate back to start position
         tween(this.node)
             .to(0.2, { position: this._startPos.clone() }, { easing: 'quadOut' })
             .start();

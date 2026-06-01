@@ -27,6 +27,10 @@ export class GameSession {
     private readonly level: LevelData
   ) {}
 
+  getShapes(): ShapeCatalog {
+    return this.shapes;
+  }
+
   getLevel(): LevelData {
     return this.level;
   }

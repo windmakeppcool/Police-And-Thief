@@ -1,15 +1,32 @@
-import { _decorator, Component, EventTouch, Node, Size, UITransform, Vec3, tween } from 'cc';
+import { _decorator, Component, EventTouch, instantiate, Node, Prefab, Size, UITransform, Vec3, tween } from 'cc';
 import { cellKey, isInsideBoard, PieceType, type BoardSize, type Coord, type Rotation, type ShapeCatalog } from '../domain/GameTypes';
 import { getAbsoluteCells } from '../domain/PieceGeometry';
 import { buildOccupancy } from '../domain/BoardOccupancy';
+import { BaseGridView } from './BaseGridView';
 import { BoardGridView } from './BoardGridView';
 import { GameSession } from '../service/GameSession';
+import { PrefabsCfg } from '../../auto/PrefabCfg';
 const { ccclass, property } = _decorator;
 
 export type OnPlacedCallback = (structureId: string, shapeId: string, origin: Coord, rotation: Rotation) => void;
 
-@ccclass('StructureDraggable')
-export class StructureDraggable extends Component {
+export interface StructureCreateOptions {
+    session: GameSession;
+    boardGridView: BoardGridView;
+    parentNode: Node;
+    trayX: number;
+    spacing: number;
+}
+
+@ccclass('StructureView')
+export class StructureView extends BaseGridView {
+    private static readonly STRUCTURE_PREFAB_KEYS: (keyof typeof PrefabsCfg)[] = [
+        'Structure1UI',
+        'Structure2UI',
+        'Structure3UI',
+        'Structure4UI',
+    ];
+
     @property(String) public shapeId: string = '';
 
     public boardNode: Node | null = null;
@@ -29,6 +46,10 @@ export class StructureDraggable extends Component {
     private _rotation: Rotation = 0;
     private _isDragging: boolean = false;
     private _hasMoved: boolean = false;
+
+    public start(): void { }
+
+    public update(deltaTime: number): void { }
 
     public setHomePosition(pos: Vec3): void {
         this._homePos.set(pos);
@@ -276,4 +297,87 @@ export class StructureDraggable extends Component {
             .to(0.2, { position: this._startPos.clone() }, { easing: 'quadOut' })
             .start();
     }
+
+    public static async createStructures(
+        options: StructureCreateOptions,
+        onPlaced?: OnPlacedCallback
+    ): Promise<StructureView[]> {
+        const { session, boardGridView, parentNode, trayX, spacing } = options;
+
+        const totalHeight = (this.STRUCTURE_PREFAB_KEYS.length - 1) * spacing;
+        const startY = totalHeight / 2;
+
+        const structures: StructureView[] = [];
+
+        for (let i = 0; i < this.STRUCTURE_PREFAB_KEYS.length; i++) {
+            const prefabKey = this.STRUCTURE_PREFAB_KEYS[i];
+            const shapeId = `building_00${i + 1}`;
+
+            const draggable = await this.createSingleStructure({
+                structureId: `structure_${i + 1}`,
+                prefabKey,
+                shapeId,
+                session,
+                boardGridView,
+                parentNode,
+                homePos: new Vec3(trayX, startY - i * spacing, 0),
+            });
+
+            if (draggable) {
+                draggable.onPlaced = onPlaced ?? null;
+                structures.push(draggable);
+            }
+        }
+
+        return structures;
+    }
+
+    public static async createSingleStructure(params: {
+        structureId: string;
+        prefabKey: keyof typeof PrefabsCfg;
+        shapeId: string;
+        session: GameSession;
+        boardGridView: BoardGridView;
+        parentNode: Node;
+        homePos: Vec3;
+    }): Promise<StructureView | null> {
+        const {
+            structureId,
+            prefabKey,
+            shapeId,
+            session,
+            boardGridView,
+            parentNode,
+            homePos,
+        } = params;
+
+        const bUrl = PrefabsCfg[prefabKey];
+        const prefab = await gCtrl.res.loadAssetAsync(bUrl, Prefab);
+        if (!prefab) {
+            console.error(`[StructureView] Failed to load prefab: ${prefabKey}`);
+            return null;
+        }
+
+        const node = instantiate(prefab);
+        const draggable = node.addComponent(StructureView);
+
+        draggable.structureId = structureId;
+        draggable.shapeId = shapeId;
+        draggable.boardNode = boardGridView.node;
+        draggable.boardGridView = boardGridView;
+        draggable.board = session.getLevel().board;
+        draggable.session = session;
+        draggable.shapes = session.getShapes();
+
+        node.parent = parentNode;
+        node.setPosition(homePos);
+        draggable.setHomePosition(homePos);
+
+        return draggable;
+    }
+
+    public static getStructurePrefabsCount(): number {
+        return this.STRUCTURE_PREFAB_KEYS.length;
+    }
 }
+

@@ -56,7 +56,8 @@ export class GameController extends Component {
             }
         };
 
-        this.structures = await StructureView.createStructures({
+        const structureView = this.node.addComponent(StructureView);
+        this.structures = await structureView.createStructures({
             session: this.session,
             boardGridView: this.boardGridView,
             parentNode: this.node,

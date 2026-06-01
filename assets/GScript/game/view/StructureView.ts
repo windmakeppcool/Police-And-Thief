@@ -1,4 +1,4 @@
-import { _decorator, Component, EventTouch, instantiate, Node, Prefab, Size, UITransform, Vec3, tween } from 'cc';
+import { _decorator, Color, Component, EventTouch, instantiate, Node, Prefab, Size, UITransform, Vec3, tween } from 'cc';
 import { cellKey, isInsideBoard, PieceType, type BoardSize, type Coord, type Rotation, type ShapeCatalog } from '../domain/GameTypes';
 import { getAbsoluteCells } from '../domain/PieceGeometry';
 import { buildOccupancy } from '../domain/BoardOccupancy';
@@ -20,7 +20,7 @@ export interface StructureCreateOptions {
 
 @ccclass('StructureView')
 export class StructureView extends BaseGridView {
-    private static readonly STRUCTURE_PREFAB_KEYS: (keyof typeof PrefabsCfg)[] = [
+    private readonly STRUCTURE_PREFAB_KEYS: (keyof typeof PrefabsCfg)[] = [
         'Structure1UI',
         'Structure2UI',
         'Structure3UI',
@@ -298,7 +298,7 @@ export class StructureView extends BaseGridView {
             .start();
     }
 
-    public static async createStructures(
+    public async createStructures(
         options: StructureCreateOptions,
         onPlaced?: OnPlacedCallback
     ): Promise<StructureView[]> {
@@ -332,7 +332,7 @@ export class StructureView extends BaseGridView {
         return structures;
     }
 
-    public static async createSingleStructure(params: {
+    public async createSingleStructure(params: {
         structureId: string;
         prefabKey: keyof typeof PrefabsCfg;
         shapeId: string;
@@ -359,6 +359,7 @@ export class StructureView extends BaseGridView {
         }
 
         const node = instantiate(prefab);
+        this.applyColorToChildren(node, this.COLOR_BUILDING);
         const draggable = node.addComponent(StructureView);
 
         draggable.structureId = structureId;
@@ -376,7 +377,7 @@ export class StructureView extends BaseGridView {
         return draggable;
     }
 
-    public static getStructurePrefabsCount(): number {
+    public getStructurePrefabsCount(): number {
         return this.STRUCTURE_PREFAB_KEYS.length;
     }
 }

@@ -3,7 +3,6 @@ import { type BoardSize, type Coord } from '../domain/GameTypes';
 import { EViewLayer } from '../../core/ui/EViewLayer';
 import { BaseGridView } from './BaseGridView';
 import { GameSession } from '../service/GameSession';
-import { EXAMPLE_LEVEL, EXAMPLE_SHAPES } from '../level/LevelExamples';
 const { ccclass, property } = _decorator;
 
 @ccclass('BoardGridView')

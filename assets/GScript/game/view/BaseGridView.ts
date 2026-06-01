@@ -3,10 +3,6 @@ import { type Coord } from '../domain/GameTypes';
 import { BoardGridView } from './BoardGridView';
 const { ccclass, property } = _decorator;
 
-
-
-
-
 @ccclass('BaseGridView')
 export class BaseGridView extends Component {
     @property(Number) public cellPadding = 2;
@@ -80,6 +76,13 @@ export class BaseGridView extends Component {
             if (n.isValid) n.destroy();
         }
         this.cellNodes = [];
+    }
+
+    protected applyColorToChildren(node: Node, color: Color): void {
+        const sprites = node.getComponentsInChildren(Sprite);
+        for (const sprite of sprites) {
+            sprite.color = color;
+        }
     }
 
     onDestroy() {

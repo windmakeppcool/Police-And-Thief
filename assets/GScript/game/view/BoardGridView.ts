@@ -48,7 +48,11 @@ export class BoardGridView extends BaseGridView {
         this.resizeBoard(level.board);
         for (let y = 0; y < this.gridSize; y++) {
             for (let x = 0; x < this.gridSize; x++) {
-                this.addCellNode(this, level.board, { x, y }, this.COLOR_EMPTY, this.COLOR_STROKE);
+                if (x === session.getLevel().thief.x && y === session.getLevel().thief.y) {
+                    this.addCellNode(this, level.board, { x, y }, this.COLOR_THIEF, this.COLOR_STROKE);
+                } else {
+                    this.addCellNode(this, level.board, { x, y }, this.COLOR_EMPTY, this.COLOR_STROKE);
+                }
             }
         }
     }

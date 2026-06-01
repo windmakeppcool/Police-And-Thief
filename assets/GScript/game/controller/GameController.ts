@@ -51,7 +51,8 @@ export class GameController extends Component {
         for (let i = 0; i < STRUCTURE_DEFS.length; i++) {
             const def = STRUCTURE_DEFS[i];
             const bUrl = PrefabsCfg[def.key];
-            const prefab = await this.loadPrefab(bUrl.bundlePath);
+            // const prefab = await this.loadPrefab(bUrl.bundlePath);
+            const prefab = await gCtrl.res.loadAssetAsync(bUrl, Prefab);
             if (!prefab) continue;
 
             const node = instantiate(prefab);

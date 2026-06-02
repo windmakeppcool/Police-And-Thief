@@ -8,9 +8,9 @@ import { GameSession } from '../service/GameSession';
 import { PrefabsCfg } from '../../auto/PrefabCfg';
 const { ccclass, property } = _decorator;
 
-export type OnPlacedCallback = (structureId: string, shapeId: string, origin: Coord, rotation: Rotation) => void;
+export type OnPolicePlacedCallback = (policeId: string, shapeId: string, origin: Coord, rotation: Rotation) => void;
 
-export interface StructureCreateOptions {
+export interface PoliceCreateOptions {
     session: GameSession;
     boardGridView: BoardGridView;
     parentNode: Node;
@@ -18,13 +18,24 @@ export interface StructureCreateOptions {
     spacing: number;
 }
 
-@ccclass('StructureView')
-export class StructureView extends BaseGridView {
-    private readonly STRUCTURE_PREFAB_KEYS: (keyof typeof PrefabsCfg)[] = [
-        'Structure1UI',
-        'Structure2UI',
-        'Structure3UI',
-        'Structure4UI',
+@ccclass('PoliceView')
+export class PoliceView extends BaseGridView {
+    private readonly POLICE_PREFAB_KEYS: (keyof typeof PrefabsCfg)[] = [
+        'Police1UI',
+        'Police2UI',
+        'Police3UI',
+        'Police4UI',
+        'Police5UI',
+        'Police6UI',
+    ];
+
+    private readonly SHAPE_IDS: string[] = [
+        'police_001',
+        'police_002',
+        'police_003',
+        'police_004',
+        'police_005',
+        'police_006',
     ];
 
     @property(String) public shapeId: string = '';
@@ -34,8 +45,8 @@ export class StructureView extends BaseGridView {
     public board: BoardSize = { width: 6, height: 6 };
     public session: GameSession | null = null;
     public shapes: ShapeCatalog = {};
-    public onPlaced: OnPlacedCallback | null = null;
-    public structureId: string = '';
+    public onPlaced: OnPolicePlacedCallback | null = null;
+    public policeId: string = '';
     public isPlaced: boolean = false;
 
     private _dragOffset: Vec3 = new Vec3();
@@ -93,9 +104,7 @@ export class StructureView extends BaseGridView {
 
         if (!Number.isFinite(minX)) return;
 
-        // Cocos 的触摸命中区域以根节点为中心。如果直接使用 max-min，
-        // 对于 L 形/竖条这种相对根节点不居中的 prefab，会有部分格子落在命中区域外。
-        // 因此这里使用关于根节点对称的热区，确保旋转前后每个可见格子都能被点中拖动。
+        // 使用关于根节点对称的热区，确保旋转前后每个可见格子都能被点中拖动
         const hitWidth = Math.max(Math.abs(minX), Math.abs(maxX)) * 2;
         const hitHeight = Math.max(Math.abs(minY), Math.abs(maxY)) * 2;
         transform.setAnchorPoint(0.5, 0.5);
@@ -143,6 +152,7 @@ export class StructureView extends BaseGridView {
         if (!this._isDragging || !this.boardNode) return;
         this._isDragging = false;
 
+        // 点击未移动 → 旋转
         if (!this._hasMoved) {
             this.rotateClockwise();
             event.propagationStopped = true;
@@ -165,7 +175,7 @@ export class StructureView extends BaseGridView {
         // 棋子与棋盘没有任何交集
         if (!this.hasOverlapWithBoard()) {
             if (this.isPlaced) {
-                this.unplaceStructure();
+                this.unplacePolice();
                 this.snapBack();
             }
             event.propagationStopped = true;
@@ -175,7 +185,7 @@ export class StructureView extends BaseGridView {
         // 坐标越界
         if (!this.isOriginInBoard(origin)) {
             if (this.isPlaced) {
-                this.unplaceStructure();
+                this.unplacePolice();
                 this.snapBack();
             } else {
                 this.snapBack();
@@ -184,12 +194,13 @@ export class StructureView extends BaseGridView {
             return;
         }
 
+        // 尝试放置
         if (this.session && this.isValidPlacement(origin)) {
             const snapBoardPos = grid.boardToLocal(origin, this.board).subtract(this.getRotatedRootToOriginOffset());
             const snapWorldPos = boardTransform.convertToWorldSpaceAR(snapBoardPos);
             this.node.setPosition(parentTransform.convertToNodeSpaceAR(snapWorldPos));
             this.isPlaced = true;
-            this.onPlaced?.(this.structureId, this.shapeId, origin, this._rotation);
+            this.onPlaced?.(this.policeId, this.shapeId, origin, this._rotation);
         } else {
             this.snapBack();
         }
@@ -205,7 +216,7 @@ export class StructureView extends BaseGridView {
         if (!this.isPlaced) return;
         const origin = this.getCurrentOrigin();
         if (origin && this.isValidPlacement(origin)) {
-            this.onPlaced?.(this.structureId, this.shapeId, origin, this._rotation);
+            this.onPlaced?.(this.policeId, this.shapeId, origin, this._rotation);
         } else {
             this._rotation = this.previousRotation(this._rotation);
             this.node.angle = this._rotation;
@@ -263,7 +274,7 @@ export class StructureView extends BaseGridView {
         const candidate = {
             id: 'overlap_check',
             shapeId: this.shapeId,
-            type: PieceType.Building,
+            type: PieceType.Police,
             origin,
             rotation: this._rotation,
         };
@@ -286,15 +297,15 @@ export class StructureView extends BaseGridView {
         const candidate = {
             id: 'candidate',
             shapeId: this.shapeId,
-            type: PieceType.Building,
+            type: PieceType.Police,
             origin,
             rotation: this._rotation,
         };
         return getAbsoluteCells(this.shapes, candidate).every(cell => isInsideBoard(this.board, cell));
     }
 
-    private unplaceStructure(): void {
-        this.session?.removeStructure(this.structureId);
+    private unplacePolice(): void {
+        this.session?.removePolice(this.policeId);
         this.isPlaced = false;
     }
 
@@ -305,7 +316,7 @@ export class StructureView extends BaseGridView {
         const candidate = {
             id: 'candidate',
             shapeId: this.shapeId,
-            type: PieceType.Building,
+            type: PieceType.Police,
             origin,
             rotation: this._rotation,
         };
@@ -316,13 +327,22 @@ export class StructureView extends BaseGridView {
             if (cell.x === level.thief.x && cell.y === level.thief.y) return false;
         }
 
-        const occupancy = buildOccupancy(this.shapes, [
+        const allPieces = [
             ...level.buildings,
-            ...this.session.getPlacedStructures().filter(piece => piece.id !== this.structureId),
-            ...this.session.getPlacedPolice(),
-        ]);
+            ...this.session.getPlacedStructures(),
+            ...this.session.getPlacedPolice().filter(p => p.id !== this.policeId),
+        ];
+        const occupancy = buildOccupancy(this.shapes, allPieces);
         for (const cell of candidateCells) {
             if (occupancy.blocked.has(cellKey(cell))) return false;
+        }
+
+        // 检查库存上限
+        const inventoryItem = level.policeInventory.find(item => item.shapeId === this.shapeId);
+        if (inventoryItem) {
+            const usedCount = this.session.getPlacedPolice()
+                .filter(p => p.shapeId === this.shapeId && p.id !== this.policeId).length;
+            if (usedCount >= inventoryItem.count) return false;
         }
 
         return true;
@@ -348,30 +368,28 @@ export class StructureView extends BaseGridView {
             .start();
     }
 
-    public async createStructures(
-        options: StructureCreateOptions,
-        onPlaced?: OnPlacedCallback
-    ): Promise<StructureView[]> {
+    public async createPolicePieces(
+        options: PoliceCreateOptions,
+        onPlaced?: OnPolicePlacedCallback
+    ): Promise<PoliceView[]> {
         const { session, boardGridView, parentNode, trayX, spacing } = options;
 
-        const structures: StructureView[] = [];
+        const policePieces: PoliceView[] = [];
         const positions = [
-            // new Vec3(trayX, spacing / 2, 0),
-            // new Vec3(trayX + spacing, spacing / 2, 0),
-            // new Vec3(trayX, -spacing / 2, 0),
-            // new Vec3(trayX + spacing, -spacing / 2, 0),
-            new Vec3(-520, 200, 0),
-            new Vec3(-320, 200, 0),
-            new Vec3(-500, -90, 0),
-            new Vec3(-300, -90, 0),
+            new Vec3(320, 200, 0),
+            new Vec3(520, 200, 0),
+            new Vec3(320, -90, 0),
+            new Vec3(520, -90, 0),
+            new Vec3(420, 380, 0),
+            new Vec3(420, -280, 0),
         ];
 
-        for (let i = 0; i < this.STRUCTURE_PREFAB_KEYS.length; i++) {
-            const prefabKey = this.STRUCTURE_PREFAB_KEYS[i];
-            const shapeId = `building_00${i + 1}`;
+        for (let i = 0; i < this.POLICE_PREFAB_KEYS.length; i++) {
+            const prefabKey = this.POLICE_PREFAB_KEYS[i];
+            const shapeId = this.SHAPE_IDS[i];
 
-            const draggable = await this.createSingleStructure({
-                structureId: `structure_${i + 1}`,
+            const draggable = await this.createSinglePolice({
+                policeId: `police_${i + 1}`,
                 prefabKey,
                 shapeId,
                 session,
@@ -382,24 +400,24 @@ export class StructureView extends BaseGridView {
 
             if (draggable) {
                 draggable.onPlaced = onPlaced ?? null;
-                structures.push(draggable);
+                policePieces.push(draggable);
             }
         }
 
-        return structures;
+        return policePieces;
     }
 
-    public async createSingleStructure(params: {
-        structureId: string;
+    public async createSinglePolice(params: {
+        policeId: string;
         prefabKey: keyof typeof PrefabsCfg;
         shapeId: string;
         session: GameSession;
         boardGridView: BoardGridView;
         parentNode: Node;
         homePos: Vec3;
-    }): Promise<StructureView | null> {
+    }): Promise<PoliceView | null> {
         const {
-            structureId,
+            policeId,
             prefabKey,
             shapeId,
             session,
@@ -411,15 +429,15 @@ export class StructureView extends BaseGridView {
         const bUrl = PrefabsCfg[prefabKey];
         const prefab = await gCtrl.res.loadAssetAsync(bUrl, Prefab);
         if (!prefab) {
-            console.error(`[StructureView] Failed to load prefab: ${prefabKey}`);
+            console.error(`[PoliceView] 加载预制体失败: ${prefabKey}`);
             return null;
         }
 
         const node = instantiate(prefab);
-        this.applyColorToChildren(node, this.COLOR_BUILDING);
-        const draggable = node.addComponent(StructureView);
+        this.applyColorToChildren(node, this.COLOR_POLICE);
+        const draggable = node.addComponent(PoliceView);
 
-        draggable.structureId = structureId;
+        draggable.policeId = policeId;
         draggable.shapeId = shapeId;
         draggable.boardNode = boardGridView.node;
         draggable.boardGridView = boardGridView;
@@ -434,8 +452,7 @@ export class StructureView extends BaseGridView {
         return draggable;
     }
 
-    public getStructurePrefabsCount(): number {
-        return this.STRUCTURE_PREFAB_KEYS.length;
+    public getPolicePrefabsCount(): number {
+        return this.POLICE_PREFAB_KEYS.length;
     }
 }
-

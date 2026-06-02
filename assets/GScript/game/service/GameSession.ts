@@ -99,6 +99,36 @@ export class GameSession {
     return { ok: true, reason: "ok" };
   }
 
+  removePolice(id: string): void {
+    const idx = this.placedPolice.findIndex(p => p.id === id);
+    if (idx >= 0) {
+      this.placedPolice.splice(idx, 1);
+    }
+  }
+
+  placePoliceWithId(input: PlacePoliceInput & { id: string }): MoveResult {
+    const existed = this.placedPolice.findIndex(piece => piece.id === input.id);
+    const temp = existed >= 0
+      ? [...this.placedPolice.slice(0, existed), ...this.placedPolice.slice(existed + 1)]
+      : this.placedPolice;
+    const validation = validatePolicePlacement(this.shapes, this.level, temp, input);
+    if (!validation.ok) return validation;
+
+    const placed: PlacedPiece = {
+      id: input.id,
+      shapeId: input.shapeId,
+      type: PieceType.Police,
+      origin: input.origin,
+      rotation: input.rotation,
+    };
+    if (existed >= 0) {
+      this.placedPolice[existed] = placed;
+    } else {
+      this.placedPolice.push(placed);
+    }
+    return { ok: true, reason: "ok" };
+  }
+
   undo(): MoveResult {
     if (this.placedPolice.length === 0) {
       return { ok: false, reason: "nothing_to_undo" };

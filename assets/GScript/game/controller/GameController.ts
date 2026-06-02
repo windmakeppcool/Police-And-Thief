@@ -4,6 +4,7 @@ import { solveLevel } from '../level/LevelSolver';
 import { GameSession } from '../service/GameSession';
 import { BoardGridView } from '../view/BoardGridView';
 import { StructureView } from '../view/StructureView';
+import { PoliceView } from '../view/PoliceView';
 import { PrefabsCfg } from '../../auto/PrefabCfg';
 import { type Coord, type Rotation } from '../domain/GameTypes';
 import { EViewLayer } from '../../core/ui/EViewLayer';
@@ -16,6 +17,7 @@ export class GameController extends Component {
     private session: GameSession = null!;
     private boardGridView: BoardGridView = null!;
     private structures: StructureView[] = [];
+    private policePieces: PoliceView[] = [];
 
     protected onLoad(): void {
         this.node.addComponent(UITransform);
@@ -26,13 +28,14 @@ export class GameController extends Component {
     protected async start(): Promise<void> {
         await this.createBoardGrid();
         await this.initStructures();
+        await this.initPolicePieces();
     }
 
     private async createBoardGrid(): Promise<void> {
         const bUrl = PrefabsCfg.BoardGridView;
         const prefab = await gCtrl.res.loadAssetAsync(bUrl, Prefab);
         if (!prefab) {
-            console.error('[GameController] Failed to load BoardGrid prefab');
+            console.error('[GameController] 加载棋盘预制体失败');
             return;
         }
 
@@ -66,42 +69,32 @@ export class GameController extends Component {
         }, onPlaced);
     }
 
-    placePoliceAtCenter(): void {
-        const result = this.session.placePolice({
-            shapeId: 'police_1x1',
-            origin: { x: 1, y: 2 },
-            rotation: 0,
-        });
-        if (!result.ok) {
-            console.warn(`放置警察失败: ${result.reason}`);
-            return;
-        }
-        const win = this.session.checkWin();
-        this.boardGridView.renderGrid(this.session);
-        gCtrl.platform.reportEvent?.('police_placed', { won: win.won });
-    }
+    private async initPolicePieces(): Promise<void> {
+        const board = this.session.getLevel().board;
+        const cs = this.boardGridView.cellSize;
+        const trayX = (board.width * cs) / 2 + cs * 3.5;
+        const spacing = cs * 2.5;
 
-    debugSolveExampleLevel(): void {
-        const result = solveLevel(EXAMPLE_SHAPES, EXAMPLE_LEVEL, {
-            maxDepth: 4,
-            rotations: [0],
-        });
+        const onPlaced = (policeId: string, shapeId: string, origin: Coord, rotation: Rotation): void => {
+            const result = this.session.placePoliceWithId({ id: policeId, shapeId, origin, rotation });
+            if (result.ok) {
+                console.log(`[GameController] 警察 ${shapeId} 已放置在 (${origin.x}, ${origin.y})，旋转 ${rotation}°`);
+                const win = this.session.checkWin();
+                this.boardGridView.renderGrid(this.session);
+                gCtrl.platform.reportEvent?.('police_placed', { shapeId, x: origin.x, y: origin.y, rotation, won: win.won });
+            } else {
+                console.warn(`[GameController] 放置警察失败: ${result.reason}`);
+            }
+        };
 
-        console.log('[GameController] 求解结果:', result);
-
-        if (!result.solved) {
-            console.warn('[GameController] 当前示例关卡无解');
-            return;
-        }
-
-        for (const placement of result.placements) {
-            const move = this.session.placePolice(placement);
-            console.log('[GameController] 放置警察:', placement, move);
-        }
-
-        const win = this.session.checkWin();
-        this.boardGridView.renderGrid(this.session);
-        console.log('[GameController] 最终胜负:', win);
+        const policeView = this.node.addComponent(PoliceView);
+        this.policePieces = await policeView.createPolicePieces({
+            session: this.session,
+            boardGridView: this.boardGridView,
+            parentNode: this.node,
+            trayX,
+            spacing,
+        }, onPlaced);
     }
 
     getSession(): GameSession {

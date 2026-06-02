@@ -93,8 +93,13 @@ export class StructureView extends BaseGridView {
 
         if (!Number.isFinite(minX)) return;
 
+        // Cocos 的触摸命中区域以根节点为中心。如果直接使用 max-min，
+        // 对于 L 形/竖条这种相对根节点不居中的 prefab，会有部分格子落在命中区域外。
+        // 因此这里使用关于根节点对称的热区，确保旋转前后每个可见格子都能被点中拖动。
+        const hitWidth = Math.max(Math.abs(minX), Math.abs(maxX)) * 2;
+        const hitHeight = Math.max(Math.abs(minY), Math.abs(maxY)) * 2;
         transform.setAnchorPoint(0.5, 0.5);
-        transform.setContentSize(new Size(maxX - minX, maxY - minY));
+        transform.setContentSize(new Size(hitWidth, hitHeight));
         this._rootToOriginOffset.set(minX + 32, minY + 32, 0);
     }
 
@@ -157,11 +162,20 @@ export class StructureView extends BaseGridView {
         const originBoardLocalPos = rootBoardLocalPos.add(this.getRotatedRootToOriginOffset());
         const origin = this.boardLocalToCoord(originBoardLocalPos, grid);
 
+        if (this.isPlaced && !this.isPointInsideBoardRect(rootBoardLocalPos, grid)) {
+            this.unplaceStructure();
+            event.propagationStopped = true;
+            return;
+        }
+
+        if (!this.isPlaced && !this.isPointInsideBoardRect(rootBoardLocalPos, grid)) {
+            event.propagationStopped = true;
+            return;
+        }
+
         if (!this.isOriginInBoard(origin)) {
             if (this.isPlaced) {
-                this.returnToHome();
-            } else {
-                this.snapBack();
+                this.unplaceStructure();
             }
             event.propagationStopped = true;
             return;
@@ -183,6 +197,7 @@ export class StructureView extends BaseGridView {
     private rotateClockwise(): void {
         this._rotation = this.nextRotation(this._rotation);
         this.node.angle = this._rotation;
+        this.ensureInteractiveArea();
 
         if (!this.isPlaced) return;
         const origin = this.getCurrentOrigin();
@@ -191,6 +206,7 @@ export class StructureView extends BaseGridView {
         } else {
             this._rotation = this.previousRotation(this._rotation);
             this.node.angle = this._rotation;
+            this.ensureInteractiveArea();
         }
     }
 
@@ -212,11 +228,11 @@ export class StructureView extends BaseGridView {
             case 0:
                 return new Vec3(x, y, 0);
             case 90:
-                return new Vec3(y, -x, 0);
+                return new Vec3(-y, x, 0);
             case 180:
                 return new Vec3(-x, -y, 0);
             case 270:
-                return new Vec3(-y, x, 0);
+                return new Vec3(y, -x, 0);
         }
     }
 
@@ -227,6 +243,12 @@ export class StructureView extends BaseGridView {
             x: Math.round((pos.x - left) / grid.cellSize),
             y: Math.round((pos.y - bottom) / grid.cellSize),
         };
+    }
+
+    private isPointInsideBoardRect(pos: Vec3, grid: BoardGridView): boolean {
+        const halfW = this.board.width * grid.cellSize / 2;
+        const halfH = this.board.height * grid.cellSize / 2;
+        return pos.x >= -halfW && pos.x <= halfW && pos.y >= -halfH && pos.y <= halfH;
     }
 
     private isOriginInBoard(origin: Coord): boolean {
@@ -240,12 +262,9 @@ export class StructureView extends BaseGridView {
         return getAbsoluteCells(this.shapes, candidate).every(cell => isInsideBoard(this.board, cell));
     }
 
-    private returnToHome(): void {
+    private unplaceStructure(): void {
         this.session?.removeStructure(this.structureId);
         this.isPlaced = false;
-        tween(this.node)
-            .to(0.2, { position: this._homePos.clone() }, { easing: 'quadOut' })
-            .start();
     }
 
     private isValidPlacement(origin: Coord): boolean {
@@ -304,10 +323,17 @@ export class StructureView extends BaseGridView {
     ): Promise<StructureView[]> {
         const { session, boardGridView, parentNode, trayX, spacing } = options;
 
-        const totalHeight = (this.STRUCTURE_PREFAB_KEYS.length - 1) * spacing;
-        const startY = totalHeight / 2;
-
         const structures: StructureView[] = [];
+        const positions = [
+            // new Vec3(trayX, spacing / 2, 0),
+            // new Vec3(trayX + spacing, spacing / 2, 0),
+            // new Vec3(trayX, -spacing / 2, 0),
+            // new Vec3(trayX + spacing, -spacing / 2, 0),
+            new Vec3(-520, 200, 0),
+            new Vec3(-320, 200, 0),
+            new Vec3(-500, -90, 0),
+            new Vec3(-300, -90, 0),
+        ];
 
         for (let i = 0; i < this.STRUCTURE_PREFAB_KEYS.length; i++) {
             const prefabKey = this.STRUCTURE_PREFAB_KEYS[i];
@@ -320,7 +346,7 @@ export class StructureView extends BaseGridView {
                 session,
                 boardGridView,
                 parentNode,
-                homePos: new Vec3(trayX, startY - i * spacing, 0),
+                homePos: positions[i] ?? new Vec3(trayX, 0, 0),
             });
 
             if (draggable) {

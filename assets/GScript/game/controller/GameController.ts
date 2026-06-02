@@ -45,8 +45,8 @@ export class GameController extends Component {
     private async initStructures(): Promise<void> {
         const board = this.session.getLevel().board;
         const cs = this.boardGridView.cellSize;
-        const trayX = -(board.width * cs) / 2 - cs * 2;
-        const spacing = cs * 2;
+        const trayX = -(board.width * cs) / 2 - cs * 3.5;
+        const spacing = cs * 2.5;
 
         const onPlaced = (structureId: string, shapeId: string, origin: Coord, rotation: Rotation): void => {
             const result = this.session.placeStructure({ id: structureId, shapeId, origin, rotation });

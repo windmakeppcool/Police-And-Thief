@@ -79,8 +79,8 @@ export class BaseGridView extends Component {
     }
 
     protected applyColorToChildren(node: Node, color: Color): void {
-        const sprites = node.getComponentsInChildren(Sprite);
-        for (const sprite of sprites) {
+        for (let child of node.children) {
+            const sprite = child.getComponent(Sprite);
             sprite.color = color;
         }
     }

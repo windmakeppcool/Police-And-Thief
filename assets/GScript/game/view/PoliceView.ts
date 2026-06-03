@@ -1,5 +1,5 @@
-import { _decorator, Color, Component, EventTouch, instantiate, Node, Prefab, Size, UITransform, Vec3, tween } from 'cc';
-import { cellKey, isInsideBoard, PieceType, type BoardSize, type Coord, type Rotation, type ShapeCatalog } from '../domain/GameTypes';
+import { _decorator, Color, Component, EventTouch, instantiate, Node, Prefab, Size, Sprite, SpriteFrame, UITransform, Vec3, tween } from 'cc';
+import { cellKey, isInsideBoard, PieceType, type BoardSize, type Coord, type PieceShape, type Rotation, type ShapeCatalog } from '../domain/GameTypes';
 import { getAbsoluteCells } from '../domain/PieceGeometry';
 import { buildOccupancy } from '../domain/BoardOccupancy';
 import { BaseGridView } from './BaseGridView';
@@ -38,6 +38,11 @@ export class PoliceView extends BaseGridView {
         'police_006',
     ];
 
+    /** policeAt 标记颜色 - 金色/黄色用于高亮 */
+    private readonly COLOR_POLICE_AT = new Color(250, 204, 21, 255); // 金黄
+    /** 每个格子的像素大小（需与 BoardGridView.cellSize 对应） */
+    public cellPixelSize: number = 64;
+
     @property(String) public shapeId: string = '';
 
     public boardNode: Node | null = null;
@@ -57,6 +62,8 @@ export class PoliceView extends BaseGridView {
     private _rotation: Rotation = 0;
     private _isDragging: boolean = false;
     private _hasMoved: boolean = false;
+    /** policeAt 位置的高亮标记节点 */
+    private _policeAtMarker: Node | null = null;
 
     public start(): void { }
 
@@ -212,6 +219,7 @@ export class PoliceView extends BaseGridView {
         this._rotation = this.nextRotation(this._rotation);
         this.node.angle = this._rotation;
         this.ensureInteractiveArea();
+        this.updatePoliceAtMarkerRotation();
 
         if (!this.isPlaced) return;
         const origin = this.getCurrentOrigin();
@@ -221,6 +229,7 @@ export class PoliceView extends BaseGridView {
             this._rotation = this.previousRotation(this._rotation);
             this.node.angle = this._rotation;
             this.ensureInteractiveArea();
+            this.updatePoliceAtMarkerRotation();
         }
     }
 
@@ -434,7 +443,7 @@ export class PoliceView extends BaseGridView {
         }
 
         const node = instantiate(prefab);
-        this.applyColorToChildren(node, this.COLOR_POLICE);
+
         const draggable = node.addComponent(PoliceView);
 
         draggable.policeId = policeId;
@@ -449,10 +458,89 @@ export class PoliceView extends BaseGridView {
         node.setPosition(homePos);
         draggable.setHomePosition(homePos);
 
+        // draggable.cellPixelSize = boardGridView.cellSize;
+
+        // draggable.createPoliceAtMarker();
+        this.applyColorToChildren(node, this.COLOR_POLICE);
         return draggable;
     }
 
     public getPolicePrefabsCount(): number {
         return this.POLICE_PREFAB_KEYS.length;
+    }
+
+    /**
+     * 创建 policeAt 位置的高亮标记
+     * 在棋子的 policeAt 对应的格子处显示一个金色圆点/菱形指示器
+     */
+    private createPoliceAtMarker(): void {
+        if (!this.shapeId || !this.shapes[this.shapeId]) return;
+
+        const shape: PieceShape = this.shapes[this.shapeId];
+        if (shape.policeAt === undefined) return;
+
+        // 如果已存在则销毁
+        if (this._policeAtMarker) {
+            this._policeAtMarker.destroy();
+            this._policeAtMarker = null;
+        }
+
+        // 从 prefabChildren（或 cells）获取对应索引的坐标
+        const coordArray = shape.prefabChildren ?? shape.cells;
+        if (!coordArray || shape.policeAt >= coordArray.length) return;
+
+        const policeCoord = coordArray[shape.policeAt];
+        // 计算在棋子本地坐标系中的像素位置
+        // Cocos Y轴向下，所以 y 需要取反
+        const markerX = policeCoord.x * this.cellPixelSize;
+        const markerY = -policeCoord.y * this.cellPixelSize;
+
+        // 创建高亮节点（金色菱形形状）
+        const markerNode = new Node('policeAt_marker');
+        markerNode.parent = this.node;
+
+        const transform = markerNode.addComponent(UITransform);
+        // 标记大小为格子大小的 40%
+        const markerSize = Math.floor(this.cellPixelSize * 0.4);
+        transform.setContentSize(markerSize, markerSize);
+        transform.setAnchorPoint(0.5, 0.5);
+
+        const sprite = markerNode.addComponent(Sprite);
+        sprite.color = this.COLOR_POLICE_AT;
+        // 如果有白色精灵帧就用它，否则需要确保有这个资源
+        if (this.whiteFrame) {
+            sprite.spriteFrame = this.whiteFrame;
+        } else {
+            console.warn(`[PoliceView] whiteFrame 未设置，policeAt 标记可能无法正确渲染`);
+        }
+
+        markerNode.setPosition(markerX, markerY, 1); // z=1 确保在最上层
+        this._policeAtMarker = markerNode;
+    }
+
+    /** 更新 policeAt 标记的旋转位置（当棋子旋转时调用） */
+    private updatePoliceAtMarkerRotation(): void {
+        if (!this._policeAtMarker) return;
+
+        if (!this.shapeId || !this.shapes[this.shapeId]) return;
+        const shape: PieceShape = this.shapes[this.shapeId];
+        if (shape.policeAt === undefined) return;
+
+        // 从 prefabChildren（或 cells）获取对应索引的坐标
+        const coordArray = shape.prefabChildren ?? shape.cells;
+        if (!coordArray || shape.policeAt >= coordArray.length) return;
+
+        // 获取原始 policeAt 位置的坐标并顺时针旋转
+        let rx = coordArray[shape.policeAt].x;
+        let ry = coordArray[shape.policeAt].y;
+        for (let r = 0; r < this._rotation; r += 90) {
+            const nx = -ry;
+            const ny = rx;
+            rx = nx;
+            ry = ny;
+        }
+
+        // Cocos Y轴向下，所以 y 需要取反
+        this._policeAtMarker.setPosition(rx * this.cellPixelSize, -ry * this.cellPixelSize, 1);
     }
 }

@@ -21,9 +21,12 @@ export enum PieceType {
 export type PieceShape = Readonly<{
   id: string;
   type: PieceType;
+  /** 数学坐标系，Y轴向上，cells[i] 对应 prefab 的第 i 个子节点 */
   cells: readonly Coord[];
-  /** 标记哪些相对坐标上有警察 */
-  policeAt?: Coord;
+  /** 可选：prefab 子节点按层级顺序排列的映射，index 0 = 预制体的第1个子节点 */
+  prefabChildren?: ReadonlyArray<{ name: string; coord: Coord }>;
+  /** 可选：policeAt 在 prefabChildren/cells 数组中的索引，表示该格子有警察站立位 */
+  policeAt?: number;
 }>;
 
 export type PlacedPiece = Readonly<{

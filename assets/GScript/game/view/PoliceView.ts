@@ -458,10 +458,7 @@ export class PoliceView extends BaseGridView {
         node.setPosition(homePos);
         draggable.setHomePosition(homePos);
 
-        // draggable.cellPixelSize = boardGridView.cellSize;
-
-        // draggable.createPoliceAtMarker();
-        this.applyColorToChildren(node, this.COLOR_POLICE);
+        this.applyColorToChildrenV2(node, draggable.shapes[draggable.shapeId].policeAt);
         return draggable;
     }
 
@@ -469,53 +466,17 @@ export class PoliceView extends BaseGridView {
         return this.POLICE_PREFAB_KEYS.length;
     }
 
-    /**
-     * 创建 policeAt 位置的高亮标记
-     * 在棋子的 policeAt 对应的格子处显示一个金色圆点/菱形指示器
-     */
-    private createPoliceAtMarker(): void {
-        if (!this.shapeId || !this.shapes[this.shapeId]) return;
-
-        const shape: PieceShape = this.shapes[this.shapeId];
-        if (shape.policeAt === undefined) return;
-
-        // 如果已存在则销毁
-        if (this._policeAtMarker) {
-            this._policeAtMarker.destroy();
-            this._policeAtMarker = null;
+    applyColorToChildrenV2(node: Node, policeAt: number): void {
+        let index = 0;
+        for (const child of node.children) {
+            const sprite = child.getComponent(Sprite);
+            if (index === policeAt) {
+                sprite.color = this.COLOR_POLICE_AT;
+            } else {
+                sprite.color = this.COLOR_POLICE;
+            }
+            index++;
         }
-
-        // 从 prefabChildren（或 cells）获取对应索引的坐标
-        const coordArray = shape.prefabChildren ?? shape.cells;
-        if (!coordArray || shape.policeAt >= coordArray.length) return;
-
-        const policeCoord = coordArray[shape.policeAt];
-        // 计算在棋子本地坐标系中的像素位置
-        // Cocos Y轴向下，所以 y 需要取反
-        const markerX = policeCoord.x * this.cellPixelSize;
-        const markerY = -policeCoord.y * this.cellPixelSize;
-
-        // 创建高亮节点（金色菱形形状）
-        const markerNode = new Node('policeAt_marker');
-        markerNode.parent = this.node;
-
-        const transform = markerNode.addComponent(UITransform);
-        // 标记大小为格子大小的 40%
-        const markerSize = Math.floor(this.cellPixelSize * 0.4);
-        transform.setContentSize(markerSize, markerSize);
-        transform.setAnchorPoint(0.5, 0.5);
-
-        const sprite = markerNode.addComponent(Sprite);
-        sprite.color = this.COLOR_POLICE_AT;
-        // 如果有白色精灵帧就用它，否则需要确保有这个资源
-        if (this.whiteFrame) {
-            sprite.spriteFrame = this.whiteFrame;
-        } else {
-            console.warn(`[PoliceView] whiteFrame 未设置，policeAt 标记可能无法正确渲染`);
-        }
-
-        markerNode.setPosition(markerX, markerY, 1); // z=1 确保在最上层
-        this._policeAtMarker = markerNode;
     }
 
     /** 更新 policeAt 标记的旋转位置（当棋子旋转时调用） */

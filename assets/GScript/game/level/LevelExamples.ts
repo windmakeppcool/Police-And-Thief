@@ -58,7 +58,7 @@ export const EXAMPLE_SHAPES: ShapeCatalog = {
       { name: "white-01", coord: { x: 0, y: 1 } },   // 有警察
       { name: "white-02", coord: { x: 1, y: 1 } }
     ],
-    policeAt: 1  // white-01 有警察
+    policeAt: 0  // white-00 有警察
   },
   police_005: {
     id: "police_005",
@@ -84,7 +84,7 @@ export const EXAMPLE_SHAPES: ShapeCatalog = {
       { name: "white-02", coord: { x: 0, y: 2 } },   // 有警察
       { name: "white-03", coord: { x: 1, y: 2 } }
     ],
-    policeAt: 2  // white-02 有警察
+    policeAt: 0  // white-02 有警察
   },
   building_1x1: {
     id: "building_1x1",

@@ -4,37 +4,44 @@ export const EXAMPLE_SHAPES: ShapeCatalog = {
   police_1x1: {
     id: "police_1x1",
     type: PieceType.Police,
-    cells: [{ x: 0, y: 0 }]
+    cells: [{ x: 0, y: 0 }],
+    policeAt: { x: 0, y: 0 }
   },
   police_001: {
     id: "police_001",
     type: PieceType.Police,
-    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 1 }, { x: 1, y: 1 }]
+    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: -1, y: 1 }, { x: 1, y: 1 }],
+    policeAt: { x: 0, y: 0 }
   },
   police_002: {
     id: "police_002",
     type: PieceType.Police,
-    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }]
+    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }],
+    policeAt: { x: 0, y: 1 }
   },
   police_003: {
     id: "police_003",
     type: PieceType.Police,
-    cells: [{ x: 0, y: 0 }, { x: -1, y: 0 }, { x: 1, y: 0 }]
+    cells: [{ x: 0, y: 0 }, { x: -1, y: 0 }, { x: 1, y: 0 }],
+    policeAt: { x: 0, y: 0 }
   },
   police_004: {
     id: "police_004",
     type: PieceType.Police,
-    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }]
+    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 1, y: 1 }],
+    policeAt: { x: 0, y: 1 }
   },
   police_005: {
     id: "police_005",
     type: PieceType.Police,
-    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: -1, y: 2 }]
+    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: -1, y: 2 }],
+    policeAt: { x: 0, y: 2 }
   },
   police_006: {
     id: "police_006",
     type: PieceType.Police,
-    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }]
+    cells: [{ x: 0, y: 0 }, { x: 0, y: 1 }, { x: 0, y: 2 }, { x: 1, y: 2 }],
+    policeAt: { x: 0, y: 2 }
   },
   building_1x1: {
     id: "building_1x1",

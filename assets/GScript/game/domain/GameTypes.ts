@@ -22,6 +22,8 @@ export type PieceShape = Readonly<{
   id: string;
   type: PieceType;
   cells: readonly Coord[];
+  /** 标记哪些相对坐标上有警察 */
+  policeAt?: Coord;
 }>;
 
 export type PlacedPiece = Readonly<{

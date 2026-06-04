@@ -1,0 +1,13 @@
+{
+  "ver": "1.2.0",
+  "importer": "directory",
+  "imported": true,
+  "uuid": "5649b719-4192-41d9-8f6d-4be48c6a5927",
+  "files": [],
+  "subMetas": {},
+  "userData": {
+    "isBundle": true,
+    "priority": 9,
+    "bundleName": "GScriptBN"
+  }
+}

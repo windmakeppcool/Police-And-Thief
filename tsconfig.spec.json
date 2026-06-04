@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "types": ["vitest/globals", "node"],
+    "baseUrl": ".",
+    "lib": ["ES2020", "DOM"]
+  },
+  "include": [
+    "assets/GScript/game/domain/**/*.ts",
+    "assets/GScript/game/rules/**/*.ts",
+    "assets/GScript/game/service/**/*.ts",
+    "assets/GScript/game/level/**/*.ts",
+    "assets/GScript/core/platform/**/*.ts",
+    "tests/**/*.ts"
+  ]
+}

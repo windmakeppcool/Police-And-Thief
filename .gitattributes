@@ -1,0 +1,80 @@
+# ===========================================================
+#  统一行尾策略：仓库内一律 LF，避免 CRLF/LF 混用导致的 diff 噪音
+# ===========================================================
+
+# 默认：让 Git 自动判定文本/二进制；文本一律 LF 入库
+* text=auto eol=lf
+
+# ---------- 源代码 ----------
+*.ts        text eol=lf
+*.tsx       text eol=lf
+*.js        text eol=lf
+*.jsx       text eol=lf
+*.mjs       text eol=lf
+*.cjs       text eol=lf
+*.json      text eol=lf
+*.json5     text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.xml       text eol=lf
+*.html      text eol=lf
+*.css       text eol=lf
+*.scss      text eol=lf
+*.less      text eol=lf
+*.md        text eol=lf
+*.txt       text eol=lf
+*.sh        text eol=lf
+
+# Windows 专属脚本仍需 CRLF
+*.bat       text eol=crlf
+*.cmd       text eol=crlf
+*.ps1       text eol=crlf
+
+# ---------- Cocos Creator 资源元数据（文本，必须 LF）----------
+*.meta      text eol=lf
+*.prefab    text eol=lf
+*.scene     text eol=lf
+*.anim      text eol=lf
+*.mtl       text eol=lf
+*.effect    text eol=lf
+
+# ---------- 二进制资源（绝不做行尾转换）----------
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.bmp       binary
+*.tga       binary
+*.webp      binary
+*.psd       binary
+*.ico       binary
+
+*.mp3       binary
+*.wav       binary
+*.ogg       binary
+*.m4a       binary
+
+*.mp4       binary
+*.webm      binary
+*.mov       binary
+
+*.fbx       binary
+*.obj       binary
+*.gltf      binary
+*.glb       binary
+
+*.ttf       binary
+*.otf       binary
+*.woff      binary
+*.woff2     binary
+
+*.zip       binary
+*.7z        binary
+*.rar       binary
+*.gz        binary
+*.tar       binary
+
+*.dll       binary
+*.so        binary
+*.dylib     binary
+*.exe       binary

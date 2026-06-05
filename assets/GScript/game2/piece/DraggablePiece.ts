@@ -1,4 +1,5 @@
 import { _decorator, Color, Component, EventTouch, input, Input, Intersection2D, Node, PolygonCollider2D, Sprite, tween, UITransform, Vec2, Vec3 } from 'cc';
+import { PieceType, Rotation } from '../common/GameTypes';
 const { ccclass, property } = _decorator;
 
 @ccclass('DraggablePiece')
@@ -15,6 +16,8 @@ export class DraggablePiece extends Component {
     private _dragOffset: Vec3 = new Vec3();
     /** 触摸开始时棋子的局部坐标 */
     private _touchStartLocalPos: Vec3 = new Vec3();
+    /** 当前旋转角度：0 / 90 / 180 / 270 */
+    private _rotation: Rotation = 0;
 
     protected onLoad(): void {
         input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
@@ -98,6 +101,7 @@ export class DraggablePiece extends Component {
         
         if (!this._hasMoved) {
             // 未发生位移，执行顺时针旋转
+            this.rotateClockwise();
             event.propagationStopped = true;
             return;
         }
@@ -118,6 +122,39 @@ export class DraggablePiece extends Component {
         this._isDragging = false;
         this._active = false;
         this._hasMoved = false;
+    }
+
+    /** 获取当前旋转角度 */
+    protected get rotation(): Rotation {
+        return this._rotation;
+    }
+
+    /**
+     * 执行顺时针旋转
+     * 
+     * 更新旋转角度并应用到节点。
+     * 若棋子已放置在新位置，还需验证旋转后是否仍为有效放置，
+     * 无效则回退到之前的旋转。
+     */
+    private rotateClockwise(): void {
+        this._rotation = this.nextRotation(this._rotation);
+        this.node.angle = this._rotation;
+    }
+
+    /** 获取下一旋转角度 (0→90→180→270→0) */
+    private nextRotation(rotation: Rotation): Rotation {
+        if (rotation === 0) return 90;
+        if (rotation === 90) return 180;
+        if (rotation === 180) return 270;
+        return 0;
+    }
+
+    /** 获取上一旋转角度 (0←90←180←270←0) */
+    private previousRotation(rotation: Rotation): Rotation {
+        if (rotation === 0) return 270;
+        if (rotation === 90) return 0;
+        if (rotation === 180) return 90;
+        return 180;
     }
 
     isTouchInsidePolygonCollider(event: EventTouch): boolean {

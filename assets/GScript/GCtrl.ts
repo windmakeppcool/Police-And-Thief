@@ -6,7 +6,7 @@ import { LoginCtrl } from './login/LoginCtrl';
 import { registerBUrlByCfg } from './core/res/ResConst';
 import { type PlatformAdapter } from './core/platform/PlatformAdapter';
 import { createPlatformAdapter } from './core/platform/PlatformFactory';
-import { GameController } from './game/controller/GameController';
+import { GameController } from './game2/GameController';
 const { ccclass, property } = _decorator;
 
 declare global { const gCtrl: GCtrl };

@@ -1,3 +1,5 @@
+import { Color } from "cc";
+
 export type Coord = Readonly<{
     x: number;
     y: number;
@@ -29,3 +31,18 @@ export type Piece = Readonly<{
 }>;
 
 export type PieceCatalog = Readonly<Record<string, Piece>>;
+
+
+export const PieceColors = {
+    COLOR_EMPTY : new Color(230, 233, 240, 255),
+    COLOR_BUILDING : new Color(148, 163, 184, 255),
+    COLOR_THIEF : new Color(239, 68, 68, 255),
+    COLOR_POLICE : new Color(59, 130, 246, 255),
+    COLOR_STROKE : new Color(203, 213, 225, 255),
+}
+
+export type LevelData = Readonly<{
+    id: string;
+    thief: Coord;
+}>;
+    

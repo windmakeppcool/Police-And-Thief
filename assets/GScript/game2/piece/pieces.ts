@@ -16,9 +16,22 @@ export const StructuresPieces: PieceCatalog = {
         origin: 2,
         rotation: 0,
     },
-    // 竖条 (3格)
+    // L形结构
     "Structure-002": {
         id: "Structure-002",
+        type: PieceType.Building,
+        cells: [
+            { name: "white-00", coord: { x: 0, y: 2 } },   
+            { name: "white-01", coord: { x: 0, y: 1 } }, 
+            { name: "white-02", coord: { x: 0, y: 0 } }, 
+            { name: "white-03", coord: { x: 1, y: 0 } }
+        ],
+        origin: 2,
+        rotation: 0,
+    },
+    // 竖条 (3格)
+    "Structure-003": {
+        id: "Structure-003",
         type: PieceType.Building,
         cells: [
             { name: "white-00", coord: { x: 0, y: 2 } },
@@ -29,8 +42,8 @@ export const StructuresPieces: PieceCatalog = {
         rotation: 0,
     },
     // 小L形 (3格)
-    "Structure-003": {
-        id: "Structure-003",
+    "Structure-004": {
+        id: "Structure-004",    
         type: PieceType.Building,
         cells: [
             { name: "white-00", coord: { x: 0, y: 1 } },

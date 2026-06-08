@@ -5,6 +5,7 @@ import { EXAMPLE_LEVEL } from './level/LevelData';
 import { PrefabsCfg } from '../auto/PrefabCfg';
 import { BoardGrid } from './piece/BoardGrid';
 import { StructurePieces } from './piece/StructurePieces';
+import { PolicePieces } from './piece/PolicePieces';
 const { ccclass, property } = _decorator;
 
 @ccclass('GameController')
@@ -14,6 +15,7 @@ export class GameController extends Component {
     private session: GameSession = null!;
     private boardGrid: BoardGrid = null!;
     private structurePieces: StructurePieces[] = [];
+    private policePieces: PolicePieces[] = [];
     private readonly STRUCTURE_PREFAB_KEYS: (keyof typeof PrefabsCfg)[] = [
         'Structure1UI', 'Structure2UI', 'Structure3UI', 'Structure4UI'
     ]
@@ -25,6 +27,19 @@ export class GameController extends Component {
         new Vec3(-310, -200, 0),
     ];
 
+    private readonly POLICE_PREFAB_KEYS: (keyof typeof PrefabsCfg)[] = [
+        'Police1UI', 'Police2UI', 'Police3UI', 'Police4UI', 'Police5UI', 'Police6UI'
+    ]
+
+    private readonly POLICE_PREFAB_LOCALPOS: Vec3[] = [
+        new Vec3(40, 70, 0),
+        new Vec3(40, -180, 0),
+        new Vec3(270, 70, 0),
+        new Vec3(270, -180, 0),
+        new Vec3(500, 70, 0),
+        new Vec3(500, -180, 0),
+    ];
+
     protected onLoad(): void {
         this.node.addComponent(UITransform);
         this.session = new GameSession(EXAMPLE_LEVEL);
@@ -33,6 +48,7 @@ export class GameController extends Component {
     protected async start(): Promise<void> {
         await this.initBoardGrid();
         await this.initStructures();
+        await this.initPolice();
     }
 
     private async initBoardGrid() {
@@ -66,6 +82,24 @@ export class GameController extends Component {
                 structurePiece.initBoardGrid(this.boardGrid);
                 this.structurePieces.push(structurePiece);
             }
+        }
+    }
+
+    private async initPolice() {
+        for (let i = 0; i < this.POLICE_PREFAB_KEYS.length; i++) {
+            const prefabKey = this.POLICE_PREFAB_KEYS[i];
+            const bUrl = PrefabsCfg[prefabKey];
+            const prefab = await gCtrl.res.loadAssetAsync(bUrl, Prefab);
+            if (!prefab) {
+                console.error(`[GameController] 加载警察预制体失败: ${prefabKey}`);
+                return null;
+            }
+            const node = instantiate(prefab);
+            node.parent = this.node;
+            node.setPosition(this.POLICE_PREFAB_LOCALPOS[i]);
+            const policePiece = node.getComponent(PolicePieces) || node.addComponent(PolicePieces);
+            policePiece.initBoardGrid(this.boardGrid);
+            this.policePieces.push(policePiece);
         }
     }
 }

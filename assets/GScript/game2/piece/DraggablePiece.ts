@@ -1,9 +1,12 @@
-import { _decorator, Color, Component, EventTouch, input, Input, Intersection2D, Node, PolygonCollider2D, Sprite, tween, UITransform, Vec2, Vec3 } from 'cc';
-import { PieceType, Rotation } from '../common/GameTypes';
+import { _decorator, Color, Component, EventTouch, input, Input, Intersection2D, Node, PolygonCollider2D, Sprite, tween, UITransform, Vec2, Vec3, Rect } from 'cc';
+import { Rotation } from '../common/GameTypes';
+import { BoardGrid } from './BoardGrid';
 const { ccclass, property } = _decorator;
 
 @ccclass('DraggablePiece')
 export class DraggablePiece extends Component {
+    private static activePiece: DraggablePiece | null = null;
+
     /** 是否激活 */
     private _active: boolean = false;
     /** 是否正在拖拽中 */
@@ -18,6 +21,11 @@ export class DraggablePiece extends Component {
     private _touchStartLocalPos: Vec3 = new Vec3();
     /** 当前旋转角度：0 / 90 / 180 / 270 */
     private _rotation: Rotation = 0;
+    private _boardGrid: BoardGrid | null = null;
+
+    public initBoardGrid(boardGrid: BoardGrid): void {
+        this._boardGrid = boardGrid;
+    }
 
     protected onLoad(): void {
         input.on(Input.EventType.TOUCH_START, this.onTouchStart, this);
@@ -38,11 +46,13 @@ export class DraggablePiece extends Component {
      */
     private onTouchStart(event: EventTouch) {
         console.log('onTouchStart');
-        if (!this.isTouchInsidePolygonCollider(event)) {
-            console.log('触摸点不在多边形内');
+        if (DraggablePiece.activePiece) return;
+
+        if (!this.isTopHitPiece(event)) {
             return;
         }
         console.log('触摸点在多边形内');
+        DraggablePiece.activePiece = this;
         this._active = true;
         // 开始拖拽
         this._isDragging = true;
@@ -102,15 +112,121 @@ export class DraggablePiece extends Component {
         if (!this._hasMoved) {
             // 未发生位移，执行顺时针旋转
             this.rotateClockwise();
+            this._isDragging = false;
+            this._active = false;
+            DraggablePiece.activePiece = null;
             event.propagationStopped = true;
             return;
         }
-        // const parentTransform = this.node.parent?.getComponent(UITransform);
-        // const worldPos = parentTransform.convertToWorldSpaceAR(this.node.position);
+        if (this.shouldSnapBack()) {
+            this.snapBack();
+        }
         this._isDragging = false;
         this._active = false;
         this._hasMoved = false;
+        DraggablePiece.activePiece = null;
         event.propagationStopped = true;
+    }
+
+    private shouldSnapBack(): boolean {
+        return !this.isInsideParentBounds() || this.isTouchingBoard() || this.isTouchingOtherPiece();
+    }
+
+    private isTopHitPiece(event: EventTouch): boolean {
+        if (!this.isTouchInsidePolygonCollider(event)) return false;
+        const siblings = this.node.parent?.children ?? [];
+
+        for (let i = siblings.length - 1; i >= 0; i--) {
+            const siblingPiece = siblings[i].getComponent(DraggablePiece);
+            if (!siblingPiece) continue;
+            if (siblingPiece.isTouchInsidePolygonCollider(event)) {
+                return siblingPiece === this;
+            }
+        }
+
+        return false;
+    }
+
+    private isInsideParentBounds(): boolean {
+        const parentTransform = this.node.parent?.getComponent(UITransform);
+        if (!parentTransform) return true;
+
+        const parentSize = parentTransform.contentSize;
+        if (parentSize.width <= 0 || parentSize.height <= 0) return true;
+
+        const parentRect = new Rect(-parentSize.width / 2, -parentSize.height / 2, parentSize.width, parentSize.height);
+        const pieceRect = this.getPieceRectInParent();
+        return parentRect.containsRect(pieceRect);
+    }
+
+    private getPieceRectInParent(): Rect {
+        const parentTransform = this.node.parent!.getComponent(UITransform)!;
+        let minX = Number.POSITIVE_INFINITY;
+        let minY = Number.POSITIVE_INFINITY;
+        let maxX = Number.NEGATIVE_INFINITY;
+        let maxY = Number.NEGATIVE_INFINITY;
+
+        for (const child of this.node.children) {
+            const childTransform = child.getComponent(UITransform);
+            if (!childTransform) continue;
+
+            const childWorldPos = child.parent!.getComponent(UITransform)!.convertToWorldSpaceAR(child.position);
+            const childParentPos = parentTransform.convertToNodeSpaceAR(childWorldPos);
+            const halfWidth = childTransform.contentSize.width / 2;
+            const halfHeight = childTransform.contentSize.height / 2;
+            minX = Math.min(minX, childParentPos.x - halfWidth);
+            minY = Math.min(minY, childParentPos.y - halfHeight);
+            maxX = Math.max(maxX, childParentPos.x + halfWidth);
+            maxY = Math.max(maxY, childParentPos.y + halfHeight);
+        }
+
+        if (!Number.isFinite(minX)) {
+            return new Rect(this.node.position.x, this.node.position.y, 0, 0);
+        }
+
+        return new Rect(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    private isTouchingBoard(): boolean {
+        if (!this._boardGrid) return false;
+
+        const boardTransform = this._boardGrid.node.getComponent(UITransform);
+        if (!boardTransform) return false;
+
+        const boardRect = this.getBoardRectInPieceParent();
+        const pieceRect = this.getPieceRectInParent();
+        return boardRect.intersects(pieceRect);
+    }
+
+    private isTouchingOtherPiece(): boolean {
+        const siblings = this.node.parent?.children ?? [];
+        const pieceRect = this.getPieceRectInParent();
+
+        for (const sibling of siblings) {
+            if (sibling === this.node) continue;
+            const siblingPiece = sibling.getComponent(DraggablePiece);
+            if (!siblingPiece) continue;
+            if (pieceRect.intersects(siblingPiece.getPieceRectInParent())) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private getBoardRectInPieceParent(): Rect {
+        const parentTransform = this.node.parent!.getComponent(UITransform)!;
+        const boardTransform = this._boardGrid!.node.getComponent(UITransform)!;
+        const half = this._boardGrid!.gridSize / 2;
+        const minBoardLocal = this._boardGrid!.cellToLocal({ x: -half, y: -half });
+        const maxBoardLocal = this._boardGrid!.cellToLocal({ x: half - 1, y: half - 1 });
+        const halfCellSize = this._boardGrid!.cellSize / 2;
+        const bottomLeftWorld = boardTransform.convertToWorldSpaceAR(new Vec3(minBoardLocal.x - halfCellSize, minBoardLocal.y - halfCellSize, 0));
+        const topRightWorld = boardTransform.convertToWorldSpaceAR(new Vec3(maxBoardLocal.x + halfCellSize, maxBoardLocal.y + halfCellSize, 0));
+        const bottomLeft = parentTransform.convertToNodeSpaceAR(bottomLeftWorld);
+        const topRight = parentTransform.convertToNodeSpaceAR(topRightWorld);
+
+        return new Rect(bottomLeft.x, bottomLeft.y, topRight.x - bottomLeft.x, topRight.y - bottomLeft.y);
     }
 
     private onTouchCancel(event: EventTouch) {
@@ -122,6 +238,7 @@ export class DraggablePiece extends Component {
         this._isDragging = false;
         this._active = false;
         this._hasMoved = false;
+        DraggablePiece.activePiece = null;
     }
 
     /** 获取当前旋转角度 */

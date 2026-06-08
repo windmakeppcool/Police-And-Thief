@@ -10,12 +10,29 @@ export class BoardGrid extends Component {
 
     @property(SpriteFrame) public cellSpriteFrame: SpriteFrame = null!;
 
-    protected cellNodes: Node[] = [];
-    private cellSize = 64;
-    private cellPadSize = 2;
-    private innerSize = this.cellSize - this.cellPadSize * 2;
+    private _cellSize = 64;
+    private _cellPadSize = 2;
+    private innerSize = this._cellSize - this._cellPadSize * 2;
+    private _gridSize = 6;
+    private cellNodes: Node[] = [];
 
-    private gridSize = 6;
+    public get cellSize(): number { return this._cellSize; }
+    public get cellPadSize(): number { return this._cellPadSize; }
+    public get gridSize(): number { return this._gridSize; }
+
+    /** 判断网格坐标是否在棋盘有效范围内 */
+    public isValidCoord(coord: Coord): boolean {
+        const half = this._gridSize / 2;
+        return coord.x >= -half && coord.x < half && coord.y >= -half && coord.y < half;
+    }
+
+    /** 将像素位置（棋盘节点本地坐标）反算为最近的网格坐标 */
+    public localToCell(localPos: Vec3): Coord {
+        return {
+            x: Math.round((localPos.x - this._cellSize / 2) / this._cellSize),
+            y: Math.round((localPos.y - this._cellSize / 2) / this._cellSize),
+        };
+    }
 
     protected onLoad(): void {
 
@@ -24,8 +41,8 @@ export class BoardGrid extends Component {
     renderGrid(session: GameSession) {
         const level = session.getLevel();
 
-        for (let i = -this.gridSize / 2; i < this.gridSize / 2; i++) {
-            for (let j = -this.gridSize / 2; j < this.gridSize / 2; j++) {
+        for (let i = -this._gridSize / 2; i < this._gridSize / 2; i++) {
+            for (let j = -this._gridSize / 2; j < this._gridSize / 2; j++) {
                 if (i === level.thief.x && j === level.thief.y) {
                     this.renderSingleCell({ x: i, y: j }, PieceColors.COLOR_THIEF, PieceColors.COLOR_STROKE);
                 } else {
@@ -39,8 +56,8 @@ export class BoardGrid extends Component {
      */
     cellToLocal(coord: Coord) {
         return new Vec3(
-            coord.x * this.cellSize + this.cellSize / 2,
-            coord.y * this.cellSize + this.cellSize / 2,
+            coord.x * this._cellSize + this._cellSize / 2,
+            coord.y * this._cellSize + this._cellSize / 2,
             0);
     }
 
@@ -56,7 +73,7 @@ export class BoardGrid extends Component {
         cellSprite.spriteFrame = this.cellSpriteFrame;
         cellSprite.color = borderColor;
         const borderTrans = boardNode.getComponent(UITransform) || boardNode.addComponent(UITransform);
-        borderTrans.setContentSize(this.cellSize, this.cellSize);
+        borderTrans.setContentSize(this._cellSize, this._cellSize);
         boardNode.setPosition(pos);
 
         // 内层 = 填充色

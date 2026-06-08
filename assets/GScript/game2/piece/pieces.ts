@@ -34,11 +34,11 @@ export const StructuresPieces: PieceCatalog = {
         id: "Structure-003",
         type: PieceType.Building,
         cells: [
-            { name: "white-00", coord: { x: 0, y: 2 } },
-            { name: "white-01", coord: { x: 0, y: 1 } },
-            { name: "white-02", coord: { x: 0, y: 0 } } 
+            { name: "white-00", coord: { x: 0, y: 1 } },
+            { name: "white-01", coord: { x: 0, y: 0 } },
+            { name: "white-02", coord: { x: 0, y: -1 } } 
         ],
-        origin: 2,
+        origin: 1,
         rotation: 0,
     },
     // 小L形 (3格)

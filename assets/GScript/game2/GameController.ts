@@ -1,4 +1,4 @@
-import { _decorator, Component, instantiate, Node, Prefab, UITransform } from 'cc';
+import { _decorator, Component, instantiate, Node, Prefab, UITransform, Vec3 } from 'cc';
 import { EViewLayer } from '../core/ui/EViewLayer';
 import { GameSession } from './common/GameSession';
 import { EXAMPLE_LEVEL } from './level/LevelData';
@@ -15,9 +15,15 @@ export class GameController extends Component {
     private boardGrid: BoardGrid = null!;
     private structurePieces: StructurePieces[] = [];
     private readonly STRUCTURE_PREFAB_KEYS: (keyof typeof PrefabsCfg)[] = [
-        // 'Structure1UI', 'Structure2UI', 'Structure3UI', 'Structure4UI'
-        'Structure1UI'
+        'Structure1UI', 'Structure2UI', 'Structure3UI', 'Structure4UI'
     ]
+
+    private readonly STRUCTURE_PREFAB_LOCALPOS: Vec3[] = [
+        new Vec3(-530, 52, 0),
+        new Vec3(-530, -200, 0),
+        new Vec3(-320, 30, 0),
+        new Vec3(-310, -200, 0),
+    ];
 
     protected onLoad(): void {
         this.node.addComponent(UITransform);
@@ -54,6 +60,12 @@ export class GameController extends Component {
             }
             const node = instantiate(prefab);
             node.parent = this.node;
+            node.setPosition(this.STRUCTURE_PREFAB_LOCALPOS[i]);
+            const structurePiece = node.getComponent(StructurePieces);
+            if (structurePiece) {
+                structurePiece.initBoardGrid(this.boardGrid);
+                this.structurePieces.push(structurePiece);
+            }
         }
     }
 }

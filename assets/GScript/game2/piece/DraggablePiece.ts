@@ -15,6 +15,7 @@ export class DraggablePiece extends Component {
     private _hasMoved: boolean = false;
     /** 拖拽开始时的棋子位置（用于弹回） */
     private _startPos: Vec3 = new Vec3();
+    private _initialPos: Vec3 = new Vec3();
     /** 触摸起点与棋子世界位置的偏移量 */
     private _dragOffset: Vec3 = new Vec3();
     /** 触摸开始时棋子的局部坐标 */
@@ -25,6 +26,10 @@ export class DraggablePiece extends Component {
 
     public initBoardGrid(boardGrid: BoardGrid): void {
         this._boardGrid = boardGrid;
+    }
+
+    protected start(): void {
+        this._initialPos.set(this.node.position);
     }
 
     protected onLoad(): void {
@@ -111,7 +116,11 @@ export class DraggablePiece extends Component {
         
         if (!this._hasMoved) {
             // 未发生位移，执行顺时针旋转
+            const wasOnBoard = this.isAllCellsInsideBoard();
             this.rotateClockwise();
+            if (wasOnBoard && !this.snapToBoard()) {
+                this.node.setPosition(this._initialPos);
+            }
             this._isDragging = false;
             this._active = false;
             DraggablePiece.activePiece = null;

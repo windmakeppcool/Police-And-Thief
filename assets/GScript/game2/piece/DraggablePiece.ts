@@ -118,7 +118,11 @@ export class DraggablePiece extends Component {
             event.propagationStopped = true;
             return;
         }
-        if (this.shouldSnapBack()) {
+        if (this.isTouchingBoard()) {
+            if (!this.snapToBoard()) {
+                this.snapBack();
+            }
+        } else if (this.shouldSnapBack()) {
             this.snapBack();
         }
         this._isDragging = false;
@@ -129,7 +133,73 @@ export class DraggablePiece extends Component {
     }
 
     private shouldSnapBack(): boolean {
-        return !this.isInsideParentBounds() || this.isTouchingBoard() || this.isTouchingOtherPiece();
+        return !this.isInsideParentBounds() || this.isTouchingOtherPiece();
+    }
+
+    private snapToBoard(): boolean {
+        if (!this._boardGrid) return false;
+        const parentTransform = this.node.parent?.getComponent(UITransform);
+        const boardTransform = this._boardGrid.node.getComponent(UITransform);
+        if (!parentTransform || !boardTransform) return false;
+
+        const anchor = this.getClosestChildToBoardCell();
+        if (!anchor) return false;
+
+        const targetWorldPos = boardTransform.convertToWorldSpaceAR(this._boardGrid.cellToLocal(anchor.coord));
+        const targetParentPos = parentTransform.convertToNodeSpaceAR(targetWorldPos);
+        const offset = targetParentPos.subtract(anchor.parentPos);
+        const nextPos = this.node.position.clone().add(offset);
+        const oldPos = this.node.position.clone();
+        this.node.setPosition(nextPos);
+
+        if (!this.isAllCellsInsideBoard() || this.isTouchingOtherPiece()) {
+            this.node.setPosition(oldPos);
+            return false;
+        }
+
+        return true;
+    }
+
+    private getClosestChildToBoardCell(): { parentPos: Vec3, coord: { x: number, y: number } } | null {
+        if (!this._boardGrid) return null;
+        const parentTransform = this.node.parent?.getComponent(UITransform);
+        const boardTransform = this._boardGrid.node.getComponent(UITransform);
+        if (!parentTransform || !boardTransform) return null;
+
+        let closest: { parentPos: Vec3, coord: { x: number, y: number }, distance: number } | null = null;
+
+        for (const child of this.node.children) {
+            const childWorldPos = child.parent!.getComponent(UITransform)!.convertToWorldSpaceAR(child.position);
+            const boardLocalPos = boardTransform.convertToNodeSpaceAR(childWorldPos);
+            const coord = this._boardGrid.localToCell(boardLocalPos);
+            const cellLocalPos = this._boardGrid.cellToLocal(coord);
+            const distance = Vec3.distance(boardLocalPos, cellLocalPos);
+            const parentPos = parentTransform.convertToNodeSpaceAR(childWorldPos);
+
+            if (!closest || distance < closest.distance) {
+                closest = { parentPos, coord, distance };
+            }
+        }
+
+        return closest;
+    }
+
+    private isAllCellsInsideBoard(): boolean {
+        if (!this._boardGrid) return false;
+        const boardTransform = this._boardGrid.node.getComponent(UITransform);
+        if (!boardTransform) return false;
+
+        for (const child of this.node.children) {
+            const childWorldPos = child.parent!.getComponent(UITransform)!.convertToWorldSpaceAR(child.position);
+            const boardLocalPos = boardTransform.convertToNodeSpaceAR(childWorldPos);
+            const coord = this._boardGrid.localToCell(boardLocalPos);
+            const cellLocalPos = this._boardGrid.cellToLocal(coord);
+            if (!this._boardGrid.isValidCoord(coord) || Vec3.distance(boardLocalPos, cellLocalPos) > 1) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private isTopHitPiece(event: EventTouch): boolean {
@@ -160,11 +230,29 @@ export class DraggablePiece extends Component {
     }
 
     private getPieceRectInParent(): Rect {
-        const parentTransform = this.node.parent!.getComponent(UITransform)!;
+        const childRects = this.getChildRectsInParent();
         let minX = Number.POSITIVE_INFINITY;
         let minY = Number.POSITIVE_INFINITY;
         let maxX = Number.NEGATIVE_INFINITY;
         let maxY = Number.NEGATIVE_INFINITY;
+
+        for (const rect of childRects) {
+            minX = Math.min(minX, rect.xMin);
+            minY = Math.min(minY, rect.yMin);
+            maxX = Math.max(maxX, rect.xMax);
+            maxY = Math.max(maxY, rect.yMax);
+        }
+
+        if (!Number.isFinite(minX)) {
+            return new Rect(this.node.position.x, this.node.position.y, 0, 0);
+        }
+
+        return new Rect(minX, minY, maxX - minX, maxY - minY);
+    }
+
+    private getChildRectsInParent(): Rect[] {
+        const parentTransform = this.node.parent!.getComponent(UITransform)!;
+        const rects: Rect[] = [];
 
         for (const child of this.node.children) {
             const childTransform = child.getComponent(UITransform);
@@ -174,17 +262,10 @@ export class DraggablePiece extends Component {
             const childParentPos = parentTransform.convertToNodeSpaceAR(childWorldPos);
             const halfWidth = childTransform.contentSize.width / 2;
             const halfHeight = childTransform.contentSize.height / 2;
-            minX = Math.min(minX, childParentPos.x - halfWidth);
-            minY = Math.min(minY, childParentPos.y - halfHeight);
-            maxX = Math.max(maxX, childParentPos.x + halfWidth);
-            maxY = Math.max(maxY, childParentPos.y + halfHeight);
+            rects.push(new Rect(childParentPos.x - halfWidth, childParentPos.y - halfHeight, childTransform.contentSize.width, childTransform.contentSize.height));
         }
 
-        if (!Number.isFinite(minX)) {
-            return new Rect(this.node.position.x, this.node.position.y, 0, 0);
-        }
-
-        return new Rect(minX, minY, maxX - minX, maxY - minY);
+        return rects;
     }
 
     private isTouchingBoard(): boolean {
@@ -200,18 +281,27 @@ export class DraggablePiece extends Component {
 
     private isTouchingOtherPiece(): boolean {
         const siblings = this.node.parent?.children ?? [];
-        const pieceRect = this.getPieceRectInParent();
+        const childRects = this.getChildRectsInParent();
 
         for (const sibling of siblings) {
             if (sibling === this.node) continue;
             const siblingPiece = sibling.getComponent(DraggablePiece);
             if (!siblingPiece) continue;
-            if (pieceRect.intersects(siblingPiece.getPieceRectInParent())) {
-                return true;
+            const siblingChildRects = siblingPiece.getChildRectsInParent();
+            for (const rect of childRects) {
+                for (const siblingRect of siblingChildRects) {
+                    if (this.isRectOverlapping(rect, siblingRect)) {
+                        return true;
+                    }
+                }
             }
         }
 
         return false;
+    }
+
+    private isRectOverlapping(a: Rect, b: Rect): boolean {
+        return a.xMin < b.xMax && a.xMax > b.xMin && a.yMin < b.yMax && a.yMax > b.yMin;
     }
 
     private getBoardRectInPieceParent(): Rect {

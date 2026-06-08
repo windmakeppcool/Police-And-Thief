@@ -194,7 +194,7 @@ export class DraggablePiece extends Component {
             const boardLocalPos = boardTransform.convertToNodeSpaceAR(childWorldPos);
             const coord = this._boardGrid.localToCell(boardLocalPos);
             const cellLocalPos = this._boardGrid.cellToLocal(coord);
-            if (!this._boardGrid.isValidCoord(coord) || Vec3.distance(boardLocalPos, cellLocalPos) > 1) {
+            if (!this._boardGrid.isValidCoord(coord) || this._boardGrid.isBlockedByThief(coord) || Vec3.distance(boardLocalPos, cellLocalPos) > 1) {
                 return false;
             }
         }

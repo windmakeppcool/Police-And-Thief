@@ -15,6 +15,7 @@ export class BoardGrid extends Component {
     private innerSize = this._cellSize - this._cellPadSize * 2;
     private _gridSize = 6;
     private cellNodes: Node[] = [];
+    private thiefCoord: Coord | null = null;
 
     public get cellSize(): number { return this._cellSize; }
     public get cellPadSize(): number { return this._cellPadSize; }
@@ -34,12 +35,17 @@ export class BoardGrid extends Component {
         };
     }
 
+    public isBlockedByThief(coord: Coord): boolean {
+        return this.thiefCoord?.x === coord.x && this.thiefCoord.y === coord.y;
+    }
+
     protected onLoad(): void {
 
     }
 
     renderGrid(session: GameSession) {
         const level = session.getLevel();
+        this.thiefCoord = level.thief;
 
         for (let i = -this._gridSize / 2; i < this._gridSize / 2; i++) {
             for (let j = -this._gridSize / 2; j < this._gridSize / 2; j++) {

@@ -13,8 +13,6 @@ export class DraggablePiece extends Component {
     private _isDragging: boolean = false;
     /** 拖拽过程中是否发生了超过阈值的位移 */
     private _hasMoved: boolean = false;
-    /** 拖拽开始时的棋子位置（用于弹回） */
-    private _startPos: Vec3 = new Vec3();
     private _initialPos: Vec3 = new Vec3();
     /** 触摸起点与棋子世界位置的偏移量 */
     private _dragOffset: Vec3 = new Vec3();
@@ -62,7 +60,6 @@ export class DraggablePiece extends Component {
         // 开始拖拽
         this._isDragging = true;
         this._hasMoved = false;
-        this._startPos.set(this.node.position);
         this._touchStartLocalPos.set(this.node.position);
 
         const touchPos = event.getUILocation();
@@ -129,20 +126,16 @@ export class DraggablePiece extends Component {
         }
         if (this.isTouchingBoard()) {
             if (!this.snapToBoard()) {
-                this.snapBack();
+                this.snapToInitial();
             }
-        } else if (this.shouldSnapBack()) {
-            this.snapBack();
+        } else {
+            this.snapToInitial();
         }
         this._isDragging = false;
         this._active = false;
         this._hasMoved = false;
         DraggablePiece.activePiece = null;
         event.propagationStopped = true;
-    }
-
-    private shouldSnapBack(): boolean {
-        return !this.isInsideParentBounds() || this.isTouchingOtherPiece();
     }
 
     private snapToBoard(): boolean {
@@ -332,7 +325,7 @@ export class DraggablePiece extends Component {
         console.log('onTouchCancel');
         if (!this._isDragging || !this._active) return;
         // 弹回棋子
-        this.snapBack();
+        this.snapToInitial();
         event.propagationStopped = true;
         this._isDragging = false;
         this._active = false;
@@ -393,14 +386,9 @@ export class DraggablePiece extends Component {
         return Intersection2D.pointInPolygon(new Vec2(localPos.x, localPos.y), collider.points);
     }
 
-    /**
-     * 弹回动画：将棋子移回拖拽开始时的位置
-     * 
-     * 使用 easeOut 缓动曲线，持续 0.2 秒。
-     */
-    private snapBack(): void {
+    private snapToInitial(): void {
         tween(this.node)
-            .to(0.2, { position: this._startPos.clone() }, { easing: 'quadOut' })
+            .to(0.2, { position: this._initialPos.clone() }, { easing: 'quadOut' })
             .start();
     }
 

@@ -8,9 +8,9 @@ export const StructuresPieces: PieceCatalog = {
         id: "Structure-001",
         type: PieceType.Building,
         cells: [
-            { name: "white-00", coord: { x: 0, y: 2 } },   
-            { name: "white-01", coord: { x: 0, y: 1 } }, 
-            { name: "white-02", coord: { x: 0, y: 0 } }, 
+            { name: "white-00", coord: { x: 0, y: 2 } },
+            { name: "white-01", coord: { x: 0, y: 1 } },
+            { name: "white-02", coord: { x: 0, y: 0 } },
             { name: "white-03", coord: { x: 1, y: 0 } }
         ],
         origin: 2,
@@ -21,9 +21,9 @@ export const StructuresPieces: PieceCatalog = {
         id: "Structure-002",
         type: PieceType.Building,
         cells: [
-            { name: "white-00", coord: { x: 0, y: 2 } },   
-            { name: "white-01", coord: { x: 0, y: 1 } }, 
-            { name: "white-02", coord: { x: 0, y: 0 } }, 
+            { name: "white-00", coord: { x: 0, y: 2 } },
+            { name: "white-01", coord: { x: 0, y: 1 } },
+            { name: "white-02", coord: { x: 0, y: 0 } },
             { name: "white-03", coord: { x: 1, y: 0 } }
         ],
         origin: 2,
@@ -36,18 +36,18 @@ export const StructuresPieces: PieceCatalog = {
         cells: [
             { name: "white-00", coord: { x: 0, y: 1 } },
             { name: "white-01", coord: { x: 0, y: 0 } },
-            { name: "white-02", coord: { x: 0, y: -1 } } 
+            { name: "white-02", coord: { x: 0, y: -1 } }
         ],
         origin: 1,
         rotation: 0,
     },
     // 小L形 (3格)
     "Structure-004": {
-        id: "Structure-004",    
+        id: "Structure-004",
         type: PieceType.Building,
         cells: [
             { name: "white-00", coord: { x: 0, y: 1 } },
-            { name: "white-01", coord: { x: 0, y: 0 } }, 
+            { name: "white-01", coord: { x: 0, y: 0 } },
             { name: "white-02", coord: { x: 1, y: 0 } }
         ],
         origin: 1,
@@ -62,10 +62,10 @@ export const PolicePieces: PieceCatalog = {
         id: "PoliceUI-001",
         type: PieceType.Police,
         cells: [
-            { name: "white-00", coord: { x: 0, y: 1 } }, 
-            { name: "white-01", coord: { x: 0, y: 0 } }, 
-            { name: "white-02", coord: { x: -1, y: 0 } }, 
-            { name: "white-03", coord: { x: 1, y: 0 } } 
+            { name: "white-00", coord: { x: 0, y: 1 } },
+            { name: "white-01", coord: { x: 0, y: 0 } },
+            { name: "white-02", coord: { x: -1, y: 0 } },
+            { name: "white-03", coord: { x: 1, y: 0 } }
         ],
         origin: 1,
         rotation: 0,
@@ -76,9 +76,9 @@ export const PolicePieces: PieceCatalog = {
         id: "PoliceUI-002",
         type: PieceType.Police,
         cells: [
-            { name: "white-00", coord: { x: 0, y: -1 } }, 
-            { name: "white-01", coord: { x: 0, y: 0 } }, 
-            { name: "white-02", coord: { x: 1, y: 0 } } 
+            { name: "white-00", coord: { x: 0, y: 1 } },
+            { name: "white-01", coord: { x: 0, y: 0 } },
+            { name: "white-02", coord: { x: 1, y: 0 } }
         ],
         origin: 1,
         rotation: 0,
@@ -89,50 +89,50 @@ export const PolicePieces: PieceCatalog = {
         id: "PoliceUI-003",
         type: PieceType.Police,
         cells: [
-            { name: "white-00", coord: { x: -1, y: 0 } }, 
-            { name: "white-01", coord: { x: 0, y: 0 } }, 
-            { name: "white-02", coord: { x: 1, y: 0 } } 
+            { name: "white-00", coord: { x: -1, y: 0 } },
+            { name: "white-01", coord: { x: 0, y: 0 } },
+            { name: "white-02", coord: { x: 1, y: 0 } }
         ],
         origin: 1,
         rotation: 0,
-        policeAt: 0  // white-00 有警察
+        policeAt: 1  // white-01 有警察
     },
     // L形，与 PoliceUI-002 形状相同，但警察位不同（视觉区分）
     "PoliceUI-004": {
         id: "PoliceUI-004",
         type: PieceType.Police,
         cells: [
-            { name: "white-00", coord: { x: 0, y: -1 } }, 
-            { name: "white-01", coord: { x: 0, y: 0 } }, 
-            { name: "white-02", coord: { x: 1, y: 0 } } 
+            { name: "white-00", coord: { x: 0, y: 1 } },
+            { name: "white-01", coord: { x: 0, y: 0 } },
+            { name: "white-02", coord: { x: 1, y: 0 } }
         ],
         origin: 1,
         rotation: 0,
         policeAt: 0  // white-00 有警察
     },
-    // 反L形，竖线向下，左拐，警察位在下端
+    // 反L形，竖线向下，右拐，警察位在下端
     "PoliceUI-005": {
         id: "PoliceUI-005",
         type: PieceType.Police,
         cells: [
-            { name: "white-00", coord: { x: 0, y: -2 } }, 
-            { name: "white-01", coord: { x: 0, y: -1 } }, 
-            { name: "white-02", coord: { x: 0, y: 0 } }, 
-            { name: "white-03", coord: { x: -1, y: 0 } } 
+            { name: "white-00", coord: { x: 0, y: 2 } },
+            { name: "white-01", coord: { x: 0, y: 1 } },
+            { name: "white-02", coord: { x: 0, y: 0 } },
+            { name: "white-03", coord: { x: 1, y: 0 } }
         ],
         origin: 2,
         rotation: 0,
-        policeAt: 2  // white-02 有警察
+        policeAt: 0  // white-02 有警察
     },
     // 反L形，竖线向下，右拐，警察位在下端
     "PoliceUI-006": {
         id: "PoliceUI-006",
         type: PieceType.Police,
         cells: [
-            { name: "white-00", coord: { x: 0, y: -2 } }, 
-            { name: "white-01", coord: { x: 0, y: -1 } }, 
-            { name: "white-02", coord: { x: 0, y: 0 } }, 
-            { name: "white-03", coord: { x: 1, y: 0 } } 
+            { name: "white-00", coord: { x: 0, y: 2 } },
+            { name: "white-01", coord: { x: 0, y: 1 } },
+            { name: "white-02", coord: { x: 0, y: 0 } },
+            { name: "white-03", coord: { x: -1, y: 0 } }
         ],
         origin: 2,
         rotation: 0,

@@ -6,7 +6,7 @@ const { ccclass } = _decorator;
 @ccclass('PolicePieces')
 export class PolicePieces extends DraggablePiece {
     protected onLoad(): void {
-        this.applyColorToChild(PieceColors.COLOR_POLICE);
+        // this.applyColorToChild(PieceColors.COLOR_POLICE);
         super.onLoad();
     }
 

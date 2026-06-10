@@ -77,7 +77,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "white-01",
+    "_name": "white-00",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -213,7 +213,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "white-02",
+    "_name": "white-01",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -349,7 +349,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "white-03",
+    "_name": "white-02",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -625,7 +625,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "white-04",
+    "_name": "white-03",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {

@@ -110,7 +110,7 @@ export const PolicePieces: PieceCatalog = {
         rotation: 0,
         policeAt: 0  // white-00 有警察
     },
-    // 反L形，竖线向下，右拐，警察位在下端
+    // L形，竖线向下，右拐，警察位在顶端
     "PoliceUI-005": {
         id: "PoliceUI-005",
         type: PieceType.Police,
@@ -122,9 +122,9 @@ export const PolicePieces: PieceCatalog = {
         ],
         origin: 2,
         rotation: 0,
-        policeAt: 0  // white-02 有警察
+        policeAt: 0  // white-00 有警察
     },
-    // 反L形，竖线向下，右拐，警察位在下端
+    // 反L形，竖线向下，左拐，警察位在下端
     "PoliceUI-006": {
         id: "PoliceUI-006",
         type: PieceType.Police,

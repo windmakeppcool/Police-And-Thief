@@ -99,8 +99,12 @@
     "__prefab": {
       "__id__": 5
     },
-    "cellSpriteFrame": {
-      "__uuid__": "210dc6fc-c499-4b84-85e4-5feb1c4eeec7@f9941",
+    "boardSpriteFrame": {
+      "__uuid__": "f75a39fe-e686-49e5-b2e6-211a3c2f21c3@f9941",
+      "__expectedType__": "cc.SpriteFrame"
+    },
+    "thiefSpriteFrame": {
+      "__uuid__": "25258f9e-a840-40f6-8066-b30a2092ce60@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_id": ""

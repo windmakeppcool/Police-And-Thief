@@ -8,7 +8,8 @@ const { ccclass, property } = _decorator;
 export class BoardGrid extends Component {
     static readonly viewLayer = EViewLayer.Scene;
 
-    @property(SpriteFrame) public cellSpriteFrame: SpriteFrame = null!;
+    @property(SpriteFrame) public boardSpriteFrame: SpriteFrame = null!;
+    @property(SpriteFrame) public thiefSpriteFrame: SpriteFrame = null!;
 
     private _cellSize = 64;
     private _cellPadSize = 2;
@@ -50,9 +51,9 @@ export class BoardGrid extends Component {
         for (let i = -this._gridSize / 2; i < this._gridSize / 2; i++) {
             for (let j = -this._gridSize / 2; j < this._gridSize / 2; j++) {
                 if (i === level.thief.x && j === level.thief.y) {
-                    this.renderSingleCell({ x: i, y: j }, PieceColors.COLOR_THIEF, PieceColors.COLOR_STROKE);
+                    this.renderSingleCell({ x: i, y: j }, this.thiefSpriteFrame);
                 } else {
-                    this.renderSingleCell({ x: i, y: j }, PieceColors.COLOR_EMPTY, PieceColors.COLOR_STROKE);
+                    this.renderSingleCell({ x: i, y: j }, this.boardSpriteFrame);
                 }
             }
         }
@@ -67,8 +68,7 @@ export class BoardGrid extends Component {
             0);
     }
 
-    renderSingleCell(coord: Coord, fillColor: Color, borderColor: Color) {
-        // 外层 = 边框色
+    renderSingleCell(coord: Coord, spriteFrame: SpriteFrame) {
         const pos = this.cellToLocal(coord);
         const boardNodeName = `Cell_${coord.x}-${coord.y}_border`;
         const boardNode = new Node(boardNodeName);
@@ -76,26 +76,11 @@ export class BoardGrid extends Component {
         const cellSprite = boardNode.addComponent(Sprite);
         cellSprite.sizeMode = Sprite.SizeMode.CUSTOM;
         cellSprite.trim = false;
-        cellSprite.spriteFrame = this.cellSpriteFrame;
-        cellSprite.color = borderColor;
+        cellSprite.spriteFrame = spriteFrame;
+        // cellSprite.color = borderColor;
         const borderTrans = boardNode.getComponent(UITransform) || boardNode.addComponent(UITransform);
         borderTrans.setContentSize(this._cellSize, this._cellSize);
         boardNode.setPosition(pos);
-
-        // 内层 = 填充色
-        const innerNodeName = `Cell_${coord.x}-${coord.y}_inner`;
-        const innerNode = new Node(innerNodeName);
-        innerNode.parent = this.node;
-        const innerSprite = innerNode.addComponent(Sprite);
-        innerSprite.sizeMode = Sprite.SizeMode.CUSTOM;
-        innerSprite.trim = false;
-        innerSprite.spriteFrame = this.cellSpriteFrame;
-        innerSprite.color = fillColor;
-        const innerTrans = innerNode.getComponent(UITransform) || innerNode.addComponent(UITransform);
-        innerTrans.setContentSize(this.innerSize, this.innerSize);
-        // innerNode.setPosition(pos);
-
-        boardNode.addChild(innerNode);
 
         this.cellNodes.push(boardNode);
     }

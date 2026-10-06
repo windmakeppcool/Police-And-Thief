@@ -6,14 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 这是一个 Cocos Creator 3.8.8 + TypeScript 项目，游戏主题是“警察抓小偷”。运行时代码主要在 `assets/GScript`，Cocos 管理的场景、预制体、贴图、JSON 和 `.meta` 文件在 `assets` 下，移动或重命名资源时必须保持 `.meta` 同步。
 
-当前主线正在从旧的 `assets/GScript/game` 重构到 `assets/GScript/game2`，但重构尚未完成：`GCtrl` 已经打开 `game2/GameController`，而测试、部分规则逻辑和旧视图仍保留在 `game` 目录中。处理游戏逻辑时要先确认当前调用链使用的是 `game2` 还是旧 `game`，不要把两套结构误认为已经完全统一。
+游戏只有一个实现：`assets/GScript/game2`。旧的 `assets/GScript/game` 与只测旧逻辑的用例已经删除，仓库中不存在第二套并行结构，因此不再需要判断“当前调用链走的是 game 还是 game2”。
 
 Cocos Asset Bundle 划分：
 
 - `assets/Boost`：启动 bundle，包含 `Main.scene` 和 `boost` 组件。
 - `assets/GScript`：bundle 名为 `GScriptBN`，包含全局 TypeScript 代码和运行时基础设施。
 - `assets/Login`：bundle 名为 `LoginBN`，当前主要包含登录音频资源。
-- `assets/Game`：bundle 名为 `GameBN`，包含游戏预制体、图片和关卡 JSON 资源。
+- `assets/Game`：bundle 名为 `GameBN`，包含游戏预制体与拆分后的设计稿图片素材（关卡数据在代码中的 `game2/level/LevelData.ts`）。
 
 ## 常用命令
 
@@ -24,23 +24,23 @@ npm install
 # 运行全部 Vitest 测试
 npm test
 
-# 运行旧 game 纯逻辑/平台相关测试
-npm run test:game
+# 只运行纯逻辑（game2 规则层）与平台相关测试
+npm run test:logic
 
 # 监听模式运行测试
 npm run test:watch
 
 # 运行单个测试文件
-npx vitest run tests/game/path/to/test.test.ts
+npx vitest run tests/game2/GameSession.test.ts
 
-# 类型检查旧 game 纯逻辑与平台代码
-npm run typecheck:game
+# 类型检查纯逻辑与平台代码
+npm run typecheck:logic
 
 # 类型检查完整 Cocos 项目；需要先由 Cocos Creator 生成 temp/tsconfig.cocos.json
 npm run typecheck:cocos
 ```
 
-测试配置使用 Vitest，入口为 `tests/**/*.test.ts`，Node 环境，`passWithNoTests` 为 true。`tsconfig.spec.json` 目前 include 的是旧 `game/domain`、`game/rules`、`game/service`、`game/level`、`core/platform` 和测试目录，因此它不是 `game2` 的完整类型检查。
+测试配置使用 Vitest，入口为 `tests/**/*.test.ts`，Node 环境，`passWithNoTests` 为 true。`tsconfig.spec.json` include 的是 `game2/common`、`game2/rules`、`game2/level`、`core/platform` 和测试目录，因此 `game2` 中的纯逻辑文件**不能 import `cc`**，否则 `typecheck:logic` 会失败。
 
 ## 启动流程
 
@@ -57,37 +57,62 @@ npm run typecheck:cocos
 
 多数运行时代码默认 `gCtrl` 在启动完成后全局可用。
 
-## game2 当前架构
+## game2 架构
 
-`game2` 是当前正在接入的新实现，目标是替代旧 `game`，但目前仍处于开发中。
+`game2` 分为纯逻辑层（可测试、不依赖 Cocos）与表现层，边界按目录划分：
 
-- `assets/GScript/game2/GameController.ts` 是当前游戏入口 UI 组件，挂在 `EViewLayer.Anim`。它创建 `GameSession`，加载 `BoardGridView` 预制体并渲染棋盘，然后实例化棋子预制体。当前 `STRUCTURE_PREFAB_KEYS` 只启用了 `Structure1UI`，其余结构棋子仍在接入中。
-- `assets/GScript/game2/common/GameTypes.ts` 定义 `Coord`、`Rotation`、`PieceType`、`Piece`、`PieceCatalog`、颜色和最小 `LevelData`。注意该文件当前 import 了 Cocos 的 `Color`，所以 `game2/common` 还不是纯 TypeScript 领域层。
-- `assets/GScript/game2/common/GameSession.ts` 目前只保存并返回关卡数据，还没有旧 `game/service/GameSession` 中的放置、撤销、胜负判断等完整规则。
-- `assets/GScript/game2/level/LevelData.ts` 提供当前示例关卡。
-- `assets/GScript/game2/piece/Pieces.ts` 是棋子目录，定义建筑棋子 `Structure-001..004` 和警察棋子 `PoliceUI-001..006` 的格子、origin、初始旋转和警察站位。
-- `assets/GScript/game2/piece/BoardGrid.ts` 负责绘制棋盘格，并提供 `cellToLocal` 坐标转换。
-- `assets/GScript/game2/piece/DraggablePiece.ts` 处理棋子的触摸命中、多边形碰撞体检测、拖拽、弹回和点击旋转。
-- `assets/GScript/game2/piece/StructurePieces.ts` 继承 `DraggablePiece`，用于建筑棋子的颜色和拖拽行为。
+纯逻辑层（无 `cc` 依赖，Node 下可直接测试）：
 
-`game2` 的棋子预制体位于 `assets/Game/Prefab/PolicePiece` 和 `assets/Game/Prefab/StructurePiece`。白块节点位置应与 `Pieces.ts` 的 `cells.coord` 保持一致，坐标按 64 像素网格映射；根节点的 `PolygonCollider2D._points` 需要覆盖白块并集外轮廓，否则拖拽命中区域会不正确。
+- `game2/common/GameTypes.ts`：`Coord`、`Rotation`、`PieceType`、`Piece`、`PieceCatalog`、`BuildingPlacement`、`LevelData`。颜色令牌已移到表现层，本文件保持纯净。
+- `game2/rules/PieceGeometry.ts`：绕 origin cell 的旋转（`(x, y) -> (-y, x)`，与设计稿一致）、角度/步数换算、绝对坐标展开。
+- `game2/rules/BoardOccupancy.ts`：`buildOccupancy` 与 `"x,y"` 格子键，占用表为 `格子键 -> 棋子 id`。
+- `game2/rules/PlacementValidator.ts`：放置合法性（棋盘内、不踩小偷、不重叠、支持忽略自身占用）。
+- `game2/rules/WinCondition.ts`：小偷去路枚举、是否被围住、星级（≤4 步三星、≤5 步两星、其余一星）。
+- `game2/common/GameSession.ts`：一局游戏的状态机，负责建筑占用、放置/移动/旋转、撤销历史、步数与胜负；表现层所有合法性判断都交给它。
+- `game2/level/LevelData.ts`：示例关卡（`EXAMPLE_LEVEL`）与参考解（`EXAMPLE_SOLUTION`）。关卡中的 `buildings` 会在开局自动摆放为路障。
 
-## 旧 game 目录状态
+表现层（Cocos）：
 
-`assets/GScript/game` 是重构前实现，仍包含较完整的纯逻辑和 Cocos 视图分层：领域类型、几何旋转、占用图、放置校验、逃脱路径、胜负判断、关卡校验/求解、旧 `GameSession`、旧 `PoliceView`/`StructureView` 等。
+- `game2/GameController.ts`：入口组件，挂在 `EViewLayer.Anim`。装配设计稿 UI → 加载棋盘预制体 → 按关卡数据摆放建筑 → 把 6 个警察棋子放进托盘槽位，并驱动开始/撤销/重开/胜利流程与定时动画（警灯、警车顶灯、小偷东张西望）。
+- `game2/piece/BoardGrid.ts`：绘制棋盘格（四角用斑马线素材）、小偷节点与落点预览（合法/非法两套贴图）。
+- `game2/piece/DraggablePiece.ts`：警察棋子交互。托盘 → 棋盘拖拽（超过 8px 才算拖拽）、落点预览、点击原地转向、非法落点弹回并抖动；命中判定用“格子方块并集”，不依赖 `PolygonCollider2D`。
+- `game2/piece/StructurePieces.ts`：建筑障碍，只按关卡数据摆放，不参与交互。
+- `game2/piece/pieceLayout.ts`：按 `cells` + `origin` 摆放预制体子节点，保证视觉与 `PieceGeometry` 的占位计算一致（不使用 `node.angle`，避免与逻辑旋转方向不一致）。
+- `game2/ui/*`：设计稿素材加载（`DesignAssets.ts`）、布局（`Layout.ts`）、节点/精灵/文本小工具（`UIFactory.ts`）以及 HUD、托盘、弹层、背景街景视图。
 
-当前 `npm run test:game` 和 `npm run typecheck:game` 仍主要覆盖旧 `game` 纯逻辑。需要迁移或复用规则时，可以参考旧 `game`，但不要直接假设旧接口已经被 `game2` 调用。
+## UI 与素材体系
 
-## UI 和资源体系
+设计稿是 `design/game-ui.html`（430×932 移动端竖版可玩原型）。它的视觉元素已拆分为独立 PNG 精灵，存放在 `assets/Game/image` 下，按功能分类：
 
-`UIManager` 负责 Canvas 下的 UI 分层，层级来自 `EViewLayer`。打开 UI 时使用组件类：`gCtrl.ui.open(SomeComponent)`。组件类必须在 `assets/GScript/auto/PrefabCfg.ts` 中注册，`registerBUrlByCfg(PrefabsCfg)` 会建立类名到 bundle 路径的映射。
+- `board/`：棋盘格（普通 + 四角斑马线）、落点预览（合法/非法）
+- `character/`：小偷警惕动画三帧
+- `piece/`：警察格（正常 + 拖拽高亮）、警察站位徽章
+- `ui/`：按钮、卡片底、托盘底、警灯闪烁两帧、虚线槽位、引导气泡、遮罩
+- `town/`：小屋、树、警车（正常 + 顶灯）
+- `icon/`：撤销/重开图标、星星（亮/暗）、城市天际线
+
+素材通过 `game2/ui/DesignAssets.ts` 的 `DesignAssetPaths`（`BL('image/...', 'GameBN')`）在运行时加载，需要九宫格拉伸的素材在加载时写入 inset。**新增或替换素材时改这一处即可**，不需要在预制体里逐个挂图。
+
+`assets/Game/Prefab` 中的预制体只负责棋子的格子子节点：
+
+- 棋子 prefab 的子节点名必须与 `game2/piece/pieces.ts` 的 `cells.name` 一致；白块本地坐标应等于 `coord * 64`，且 origin cell 位于节点本地原点 `(0,0)`（`pieceLayout.ts` 会按数据重新摆放，但仍建议保持预制体与数据一致）。
+- 警察 prefab 的警察站位格内嵌 `cop_badge` 节点；`pieces.ts` 的 `policeAt` 必须与该格子对应。
+- 建筑 prefab 使用 `block_05.png`；`PolygonCollider2D` 已不再参与命中判定，可以留作编辑器辅助。
+
+`UIManager` 负责 Canvas 下的 UI 分层，层级来自 `EViewLayer`。打开 UI 时使用组件类：`gCtrl.ui.open(SomeComponent)`。组件类必须在 `assets/GScript/auto/PrefabCfg.ts` 中注册，`registerBUrlByCfg(PrefabsCfg)` 会建立类名到 bundle 路径的映射（`GameController` 的键名必须与类名一致）。
 
 `ResConst.BL(path, bundleName)` 创建 bundle 资源地址。`ResManager` 包装 Cocos `assetManager`，常用调用是：
 
 - `gCtrl.res.loadBundleAsync(bundleName)`：加载 Asset Bundle。
 - `gCtrl.res.loadAssetAsync(bUrl, type)`：从 bundle 中加载指定类型资源。
 
-新增需要通过 `gCtrl.ui.open(...)` 打开的 UI 预制体时，需要同步更新 `PrefabsCfg`。bundle 名称必须和目录 `.meta` 中的 bundle 名一致，例如 `GScriptBN`、`LoginBN`、`GameBN`。
+## 玩法规则
+
+- 6×6 棋盘，坐标范围 -3..2，小偷固定在关卡配置的格子；建筑由关卡数据自动摆放，玩家不能移动。
+- 玩家从托盘拖出警察棋子放到棋盘；点击棋子会顺时针转向 90°：已上场时绕 origin cell 原地转向（需要落点合法），还在托盘时则先调好朝向（`GameSession.rotateInTray`），这样贴边的落点也能直接拖上去。
+- 只有棋子“首次上岗”才计入步数；把已上场的棋子挪到别的格子不计步。
+- 四周去路全部被棋子或建筑占据即获胜；步数 ≤4 三星、≤5 两星，其余一星。
+- 撤销可回退上一次放置/移动（首次上岗被撤销时步数回退），重开把所有警察恢复到托盘初始状态。
 
 ## 平台适配
 
@@ -98,7 +123,8 @@ npm run typecheck:cocos
 ## 编辑注意事项
 
 - 修改 Cocos 资源时保留 `.meta` 文件，不要只移动 `.prefab`、图片或场景文件。
-- 修改棋子 prefab 时，白块节点名、`Pieces.ts` 中的 `cells.name`、origin 索引和碰撞体需要一起核对。
-- `game2` 仍未完成纯逻辑拆分；如果新增可测试规则，优先放在不依赖 Cocos 的文件中，并同步调整测试/类型检查配置。
+- 新增可测试的规则时放在 `game2/rules`、`game2/common`、`game2/level` 中（保持无 `cc` 依赖），并在 `tests/game2` 补用例。
+- 调整关卡时同步检查 `tests/game2/LevelData.test.ts`：它会校验建筑合法性、开局不会被一步围死，并用求解器断言“最少三步”。
+- UI 布局常量集中在 `game2/ui/Layout.ts`，设计分辨率为 1280×720（`FIXED_HEIGHT`），改布局优先改这里的 `Metrics`。
 - `typecheck:cocos` 依赖 Cocos Creator 生成的 `temp/tsconfig.cocos.json`；缺失时需要先用 Cocos Creator 打开项目。
-- `npm install` 当前可能报告来自测试工具链依赖的中等漏洞，不要直接运行破坏性升级命令。
+- `npm install` 当前可能报告来自测试工具链依赖的中等漏洞，不要直接运行破坏性升级命令；若本机 npm 缓存权限异常，可用 `npm install --cache .npm-cache`。

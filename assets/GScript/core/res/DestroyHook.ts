@@ -1,5 +1,5 @@
-import { _decorator, Component, Node } from 'cc';
-const { ccclass, property } = _decorator;
+import { _decorator, Component } from 'cc';
+const { ccclass } = _decorator;
 
 @ccclass('DestroyHook')
 export class DestroyHook extends Component {

@@ -1,48 +1,46 @@
-import { Color } from "cc";
-
+/** 网格坐标（Y 轴向上，与 Cocos 一致） */
 export type Coord = Readonly<{
     x: number;
     y: number;
 }>;
 
+/** 棋子旋转角度，按 90 度递增 */
 export type Rotation = 0 | 90 | 180 | 270;
 
 export enum PieceType {
     Thief = "thief",
     Police = "police",
     Building = "building",
-    Empty = "empty",
-    Stroke = "stroke"
 }
 
 export type Piece = Readonly<{
     id: string;
-    type: PieceType
-    /** 组成棋子的cell，对应名称和坐标，按层级顺序排列的映射，index 0 = 预制体的第1个子节点*/
+    type: PieceType;
+    /** 组成棋子的 cell：名称与坐标，顺序与预制体子节点一致，index 0 = 预制体的第 1 个子节点 */
     cells: Array<{ name: string; coord: Coord }>;
-    /** 棋子旋转的中心cell，在 cells 数组中的索引 */
+    /** 棋子旋转中心 cell，在 cells 数组中的索引 */
     origin: number;
-    /** 棋子的原始旋转角度 */
+    /** 棋子的初始旋转角度 */
     rotation: Rotation;
-    /** 可选：policeAt 在 cells 数组中的索引，表示该格子有警察站立位
-     * 仅在 type 为 Police 时有效
-     */
+    /** 警察站位格在 cells 数组中的索引，仅 Police 有效 */
     policeAt?: number;
 }>;
 
 export type PieceCatalog = Readonly<Record<string, Piece>>;
 
-
-export const PieceColors = {
-    COLOR_EMPTY : new Color(230, 233, 240, 255),
-    COLOR_BUILDING : new Color(148, 163, 184, 255),
-    COLOR_THIEF : new Color(239, 68, 68, 255),
-    COLOR_POLICE : new Color(59, 130, 246, 255),
-    COLOR_STROKE : new Color(203, 213, 225, 255),
-}
+/** 关卡自动摆放的建筑障碍 */
+export type BuildingPlacement = Readonly<{
+    pieceId: string;
+    anchor: Coord;
+    rotation: Rotation;
+}>;
 
 export type LevelData = Readonly<{
     id: string;
+    /** 棋盘边长（格数），坐标范围 -gridSize/2 .. gridSize/2-1 */
+    gridSize: number;
+    /** 小偷所在格 */
     thief: Coord;
+    /** 关卡生成时自动摆放的建筑障碍 */
+    buildings: ReadonlyArray<BuildingPlacement>;
 }>;
-    

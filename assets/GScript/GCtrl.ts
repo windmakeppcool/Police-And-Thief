@@ -1,4 +1,4 @@
-import { _decorator, Canvas, Component, Node } from 'cc';
+import { _decorator, Canvas, Component } from 'cc';
 import { UIManager } from './core/ui/UIManager';
 import { ResManager } from './core/res/ResManager';
 import { PrefabsCfg } from './auto/PrefabCfg';
@@ -7,7 +7,7 @@ import { registerBUrlByCfg } from './core/res/ResConst';
 import { type PlatformAdapter } from './core/platform/PlatformAdapter';
 import { createPlatformAdapter } from './core/platform/PlatformFactory';
 import { GameController } from './game2/GameController';
-const { ccclass, property } = _decorator;
+const { ccclass } = _decorator;
 
 declare global { const gCtrl: GCtrl };
 

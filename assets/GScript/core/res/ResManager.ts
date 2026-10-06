@@ -1,5 +1,5 @@
 import { _decorator, Asset, assetManager, AssetManager, Constructor } from 'cc';
-const { ccclass, property } = _decorator;
+const { ccclass } = _decorator;
 
 @ccclass('ResManager')
 export class ResManager {
@@ -24,7 +24,7 @@ export class ResManager {
 
     loadAssetAsync<T extends Asset>(bUrl: IBundleUrl, type: Constructor<T>): Promise<T | null> {
         return new Promise<T | null>(rs => {
-            assetManager.loadBundle(bUrl.bundleName, type, (e, bundle) => {
+            assetManager.loadBundle(bUrl.bundleName, (e, bundle) => {
                 if (e || !bundle) {
                     console.error(`加载资源${bUrl.bundlePath}失败: ${e}`);
                     rs(null);

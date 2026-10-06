@@ -131,7 +131,7 @@
   },
   {
     "__type__": "cc.Node",
-    "_name": "player_01",
+    "_name": "cop_badge",
     "_objFlags": 0,
     "__editorExtras__": {},
     "_parent": {
@@ -230,7 +230,7 @@
       "a": 255
     },
     "_spriteFrame": {
-      "__uuid__": "7d079c50-3867-40c3-9330-2d09ba4de5fa@f9941",
+      "__uuid__": "3c35b424-a9f5-4e14-917a-1253275b376e@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_type": 0,
@@ -316,7 +316,7 @@
       "a": 255
     },
     "_spriteFrame": {
-      "__uuid__": "cc4addca-12c1-468b-9d68-571505952b8c@f9941",
+      "__uuid__": "4bee5bf0-e9f3-427c-8b99-0a2266bc7797@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_type": 0,
@@ -452,7 +452,7 @@
       "a": 255
     },
     "_spriteFrame": {
-      "__uuid__": "cc4addca-12c1-468b-9d68-571505952b8c@f9941",
+      "__uuid__": "4bee5bf0-e9f3-427c-8b99-0a2266bc7797@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_type": 0,
@@ -588,7 +588,7 @@
       "a": 255
     },
     "_spriteFrame": {
-      "__uuid__": "cc4addca-12c1-468b-9d68-571505952b8c@f9941",
+      "__uuid__": "4bee5bf0-e9f3-427c-8b99-0a2266bc7797@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_type": 0,
@@ -724,7 +724,7 @@
       "a": 255
     },
     "_spriteFrame": {
-      "__uuid__": "cc4addca-12c1-468b-9d68-571505952b8c@f9941",
+      "__uuid__": "4bee5bf0-e9f3-427c-8b99-0a2266bc7797@f9941",
       "__expectedType__": "cc.SpriteFrame"
     },
     "_type": 0,

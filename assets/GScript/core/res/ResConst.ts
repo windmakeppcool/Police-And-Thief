@@ -19,7 +19,7 @@ const g_Key2Url = new Map<string, IBundleUrl>();
  * @returns BundleUrl 对象
  */
 
-export function BL(url: string, bundleName: string, k?: string): IBundleUrl {
+export function BL(url: string, bundleName: string): IBundleUrl {
     let obj: IBundleUrl = Object.create(null);
     obj.bundleName = bundleName;
     obj.bundlePath = url;

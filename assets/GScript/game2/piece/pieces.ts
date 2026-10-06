@@ -139,3 +139,6 @@ export const PolicePieces: PieceCatalog = {
         policeAt: 2  // white-02 有警察
     }
 };
+
+/** 完整棋子目录：建筑障碍 + 警察，供 GameSession 计算占用与放置合法性 */
+export const BoardPieces: PieceCatalog = { ...StructuresPieces, ...PolicePieces };

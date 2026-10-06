@@ -1,5 +1,5 @@
 import { _decorator, AudioClip, AudioSource, Component, director, Node } from 'cc';
-const { ccclass, property } = _decorator;
+const { ccclass } = _decorator;
 
 @ccclass('AudioManager')
 export class AudioManager extends Component {

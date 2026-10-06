@@ -1,7 +1,6 @@
 import { BL } from "../core/res/ResConst";
 
 export const PrefabsCfg = {
-    Thief: BL("Prefab/ThiefUI", "GameBN"),
     Police1UI: BL("Prefab/PolicePiece/PoliceUI-001", "GameBN"),
     Police2UI: BL("Prefab/PolicePiece/PoliceUI-002", "GameBN"),
     Police3UI: BL("Prefab/PolicePiece/PoliceUI-003", "GameBN"),

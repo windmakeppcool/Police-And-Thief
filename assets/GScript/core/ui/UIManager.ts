@@ -2,7 +2,6 @@ import { _decorator, Canvas, ResolutionPolicy, Size, view, screen, Constructor, 
 import { EViewLayer, MyLayer } from './EViewLayer';
 import { ResLoader } from '../res/ResLoader';
 import { getUIClassByUrl } from '../res/ResConst';
-const { ccclass, property } = _decorator;
 
 export const G_VIEW_SIZE = new Size(0, 0);
 function adapterScreen() {

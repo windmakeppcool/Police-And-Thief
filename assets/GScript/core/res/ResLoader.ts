@@ -1,7 +1,7 @@
-import { _decorator, Asset, Component, Constructor, Node, Prefab } from 'cc';
+import { _decorator, Asset, Component, Constructor, Prefab } from 'cc';
 import { DestroyHook } from './DestroyHook';
 import { getUIClassByUrl } from './ResConst';
-const { ccclass, property } = _decorator;
+const { ccclass } = _decorator;
 
 @ccclass('ResLoader')
 export class ResLoader extends Component {

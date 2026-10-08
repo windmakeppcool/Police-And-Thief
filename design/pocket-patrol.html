@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#dcefe4">
+    <meta name="description" content="口袋巡逻队：在小小街区里移动警察积木，围住小偷。轻松开局，快乐动脑。">
+    <title>口袋巡逻队 · UI 设计效果稿</title>
+    <link rel="stylesheet" href="pocket-patrol.css">
+</head>
+<body>
+    <svg class="svg-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <defs>
+            <symbol id="i-badge" viewBox="0 0 32 32"><path d="M16 3 27 7v10c0 6-11 12-11 12S5 23 5 17V7Z" fill="#72bcb3"/><path d="m16 9 2 4 5 .7-3.5 3.4.8 4.9-4.3-2.3-4.3 2.3.8-4.9L9 13.7l5-.7Z" fill="#ffce69"/></symbol>
+            <symbol id="i-star" viewBox="0 0 32 32"><path d="m16 3 4 8 9 1.5-6.5 6.3 1.6 9L16 23.5 7.9 28l1.6-9.2L3 12.5l9-1.5Z" fill="#ffcc65"/></symbol>
+            <symbol id="i-play" viewBox="0 0 32 32"><path d="M10 5q-2-1-2 2v18q0 3 2 2l17-10q2-1 0-2Z" fill="currentColor" stroke="none"/></symbol>
+            <symbol id="i-grid" viewBox="0 0 32 32"><rect x="4" y="4" width="9" height="9" rx="3" fill="#f7c56a"/><rect x="19" y="4" width="9" height="9" rx="3" fill="#8bc6ba"/><rect x="4" y="19" width="9" height="9" rx="3" fill="#f29179"/><rect x="19" y="19" width="9" height="9" rx="3" fill="#8cbbe3"/></symbol>
+            <symbol id="i-home" viewBox="0 0 32 32"><path d="m3 15 13-11 13 11" fill="#f29179"/><path d="M7 13v15h18V13" fill="#ffedc3"/><path d="M13 28V18h6v10" fill="#8bc6ba"/></symbol>
+            <symbol id="i-settings" viewBox="0 0 32 32"><path d="m13 3-1 4-4 1-3 4 2 4-2 4 3 4 4 1 1 4h6l1-4 4-1 3-4-2-4 2-4-3-4-4-1-1-4Z" fill="#8bc6ba"/><circle cx="16" cy="16" r="5" fill="#fff8ea"/></symbol>
+            <symbol id="i-user" viewBox="0 0 32 32"><circle cx="16" cy="11" r="7" fill="#ffcd9e"/><path d="M4 29v-3a12 12 0 0 1 24 0v3Z" fill="#8cbbe3"/><path d="M9 8V5l7-3 7 3v3Z" fill="#406b8a"/></symbol>
+            <symbol id="i-back" viewBox="0 0 32 32"><path d="m19 7-9 9 9 9M10 16h17" fill="none"/></symbol>
+            <symbol id="i-arrow" viewBox="0 0 32 32"><path d="M5 16h21m-9-8 9 8-9 8" fill="none"/></symbol>
+            <symbol id="i-lock" viewBox="0 0 32 32"><path d="M10 14V9a6 6 0 0 1 12 0v5" fill="none"/><rect x="6" y="13" width="20" height="15" rx="5" fill="#bdcbc5"/><path d="M16 19v4"/></symbol>
+            <symbol id="i-pause" viewBox="0 0 32 32"><rect x="7" y="5" width="6" height="22" rx="2" fill="#8cbbe3"/><rect x="19" y="5" width="6" height="22" rx="2" fill="#8cbbe3"/></symbol>
+            <symbol id="i-hint" viewBox="0 0 32 32"><path d="M10 22v-3a10 10 0 1 1 12 0v3Z" fill="#ffce69"/><path d="M11 26h10m-8 4h6M16 14v8m-4-11 4 3 4-3" fill="none"/></symbol>
+            <symbol id="i-reset" viewBox="0 0 32 32"><path d="M7 11a11 11 0 1 1-1 12M7 3v9h9" fill="none"/></symbol>
+            <symbol id="i-share" viewBox="0 0 32 32"><path d="M16 21V3m-7 7 7-7 7 7M7 17H4v11h24V17h-3" fill="none"/></symbol>
+            <symbol id="i-clock" viewBox="0 0 32 32"><circle cx="16" cy="17" r="11" fill="#ffedc3"/><path d="M16 10v7l5 3M12 2h8m-4 0v4" fill="none"/></symbol>
+            <symbol id="i-sound" viewBox="0 0 32 32"><path d="M4 12h6l8-7v22l-8-7H4Z" fill="#8cbbe3"/><path d="M23 10q7 6 0 12m3-16q11 10 0 20" fill="none"/></symbol>
+            <symbol id="i-check" viewBox="0 0 32 32"><path d="m7 16 6 6L26 9" fill="none"/></symbol>
+            <symbol id="i-close" viewBox="0 0 32 32"><path d="m8 8 16 16M24 8 8 24" fill="none"/></symbol>
+            <symbol id="i-thief" viewBox="0 0 32 32"><path d="M7 14V9q1-8 9-8t9 8v5" fill="#466170"/><circle cx="16" cy="18" r="11" fill="#ffcfac"/><rect x="5" y="12" width="22" height="9" rx="4" fill="#344d58"/><path d="M10 16h2m8 0h2m-9 8q3 2 6 0" stroke="#fff8ea" fill="none"/></symbol>
+            <symbol id="i-tree" viewBox="0 0 32 32"><path d="M16 22v7" fill="none"/><path d="M16 3C5 3 3 16 7 22q9 6 18 0c4-6 2-19-9-19Z" fill="#82b9a0"/><path d="m11 15 5 5 5-7M16 10v15" fill="none"/></symbol>
+        </defs>
+    </svg>
+
+    <div class="desktop-frame">
+        <header class="desktop-header">
+            <a class="wordmark" href="pocket-patrol.html"><svg class="icon"><use href="#i-badge"/></svg><span>POCKET<br>PATROL<span class="wordmark-dot">.</span></span></a>
+            <span class="edition">小小巡逻队 · 大大的正义感</span>
+            <span class="preview-label"><i></i> UI 设计效果稿</span>
+        </header>
+        <aside class="desktop-story">
+            <span class="eyebrow"><span></span> 给大脑，放个小假</span>
+            <h1>小小街区，<br>大大<span class="outlined">脑洞。</span></h1>
+            <p>小偷躲进了积木小镇。<br>带上你的机智，和巡逻队一起出发！</p>
+            <div class="story-rule"></div>
+            <div class="story-features">
+                <span><svg class="icon"><use href="#i-grid"/></svg> 拼一拼，围住小偷</span>
+                <span><svg class="icon"><use href="#i-clock"/></svg> 三分钟，快乐动脑</span>
+            </div>
+            <div class="desktop-stamp"><svg class="icon"><use href="#i-badge"/></svg><span>认真巡逻<br><b>快乐第一</b></span></div>
+            <div class="preview-controls">
+                <label for="preview-page">界面预览 · 示例数据</label>
+                <select id="preview-page">
+                    <option value="menu">01 / 主菜单</option>
+                    <option value="boot">02 / 启动加载</option>
+                    <option value="game">03 / 游戏主界面</option>
+                    <option value="levels">04 / 关卡选择</option>
+                    <option value="win">05 / 胜利结算</option>
+                    <option value="lose">06 / 失败结算</option>
+                    <option value="settings">07 / 设置</option>
+                    <option value="profile">08 / 个人中心</option>
+                    <option value="pause">09 / 暂停弹层</option>
+                </select>
+            </div>
+            <div class="desktop-footnote">轻量益智 / 无需下载 / 即刻开局</div>
+        </aside>
+
+        <main id="app" class="app" aria-label="口袋巡逻队">
+            <section id="boot" class="screen boot-screen" aria-labelledby="boot-title" hidden>
+                <div class="boot-mark"><svg class="icon"><use href="#i-badge"/></svg></div>
+                <span class="eyebrow">POCKET PATROL</span>
+                <h2 id="boot-title">口袋巡逻队</h2>
+                <p>集合啦！快乐马上出发</p>
+                <div class="loading-track" role="progressbar" aria-label="游戏加载进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="loading-fill"></span></div>
+                <small id="loading-text" role="status">正在整理巡逻装备… 0%</small>
+                <span class="boot-bottom">适度游戏益脑 · 享受健康生活</span>
+            </section>
+
+            <section id="menu" class="screen menu-screen active" aria-labelledby="menu-title">
+                <header class="app-top">
+                    <span class="mini-brand"><svg class="icon"><use href="#i-badge"/></svg> 口袋巡逻队</span>
+                    <span class="star-counter"><svg class="icon"><use href="#i-star"/></svg><b data-total-stars>0</b></span>
+                </header>
+                <div class="screen-scroll menu-content">
+                    <div class="menu-heading">
+                        <span class="eyebrow">POCKET PATROL</span>
+                        <h2 id="menu-title">警察抓小偷<span class="title-spark">✦</span></h2>
+                        <p>动动小脑筋，小偷无处躲！</p>
+                    </div>
+                    <div class="hero-scene">
+                        <img id="town-art" fetchpriority="high" alt="薄荷色积木小镇里，可爱的巡逻警察正在追赶戴眼罩的小偷" width="768" height="576" src="https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=Premium%203D%20clay%20toy%20illustration%20for%20a%20cozy%20mobile%20puzzle%20game%2C%20a%20cute%20chubby%20little%20police%20officer%20in%20navy%20blue%20cap%20and%20uniform%20on%20the%20left%20chasing%20a%20tiny%20playful%20burglar%20in%20black%20eye%20mask%20and%20striped%20shirt%20on%20the%20right%2C%20standing%20on%20a%20small%20isometric%20rounded%20cream%20checkerboard%20street%20platform%2C%20two%20pastel%20peach%20houses%20and%20round%20mint%20trees%2C%20tiny%20blue%20police%20car%2C%20pale%20mint%20green%20background%2C%20soft%20daylight%2C%20matte%20vinyl%20materials%2C%20beautiful%20ambient%20occlusion%2C%20clean%20composition%2C%20front%20three%20quarter%20view%2C%20high%20quality%20mobile%20game%20key%20art%2C%20no%20text%2C%20no%20letters%2C%20no%20watermark&amp;image_size=landscape_4_3">
+                        <span class="scene-tag"><svg class="icon"><use href="#i-badge"/></svg> 今日任务：快乐出警</span>
+                    </div>
+                    <div class="next-stop"><div><span class="eyebrow">下一站，出发！</span><h3>第 <span id="next-level">08</span> 关 · <span id="next-name">薄荷街角</span></h3></div><span class="difficulty">轻松上手</span></div>
+                </div>
+                <div class="menu-actions">
+                    <button class="button primary start-button" data-action="start"><svg class="icon"><use href="#i-play"/></svg>开始游戏<svg class="icon arrow"><use href="#i-arrow"/></svg></button>
+                    <button class="button secondary" data-action="levels"><svg class="icon"><use href="#i-grid"/></svg>关卡选择<span class="button-detail"><span data-unlocked>1</span> / 24<svg class="icon"><use href="#i-arrow"/></svg></span></button>
+                    <p class="menu-tip">不比手速，只比一点点小机智</p>
+                </div>
+                <nav class="bottom-nav" aria-label="主导航">
+                    <button class="nav-button current" data-action="menu" aria-current="page"><svg class="icon"><use href="#i-home"/></svg><span>小镇</span></button>
+                    <button class="nav-button" data-action="settings"><svg class="icon"><use href="#i-settings"/></svg><span>设置</span></button>
+                    <button class="nav-button" data-action="profile"><svg class="icon"><use href="#i-user"/></svg><span>我的</span></button>
+                </nav>
+            </section>
+
+            <section id="levels" class="screen" aria-labelledby="levels-title" hidden>
+                <header class="page-header"><button class="icon-button" data-action="menu" aria-label="返回主菜单"><svg class="icon"><use href="#i-back"/></svg></button><h2 id="levels-title">巡逻地图</h2><span class="star-counter"><svg class="icon"><use href="#i-star"/></svg><b data-total-stars>0</b></span></header>
+                <div class="screen-scroll level-content">
+                    <div class="chapter-heading"><span class="eyebrow">每一步，都算数</span><h3>小镇的平安，<br>就交给你啦。</h3><svg class="chapter-badge icon"><use href="#i-badge"/></svg></div>
+                    <div class="progress-caption"><span>巡逻进度</span><b><span id="completed-count">0</span> / 24</b></div>
+                    <div class="map-progress"><span id="map-progress-fill"></span></div>
+                    <div id="level-grid" class="level-grid"></div>
+                    <p class="muted center">通关上一关，即可解锁下一段旅程</p>
+                </div>
+                <footer class="page-footer"><button class="button primary" data-action="start">继续巡逻<svg class="icon"><use href="#i-arrow"/></svg></button></footer>
+            </section>
+
+            <section id="game" class="screen game-screen" aria-labelledby="game-title" hidden>
+                <header class="page-header"><button class="icon-button" data-action="leave" aria-label="返回主菜单"><svg class="icon"><use href="#i-back"/></svg></button><div><span class="eyebrow" id="game-level">第 08 关</span><h2 id="game-title">薄荷街角</h2></div><button class="icon-button" data-action="help" aria-label="玩法说明"><span class="question-mark">?</span></button></header>
+                <div class="screen-scroll game-content">
+                    <div class="game-stats">
+                        <div><span>当前分数</span><b id="score">240<span>分</span></b></div>
+                        <div><span>出动警队</span><b id="moves">2<span>步</span></b></div>
+                        <div><span>剩余时间</span><b id="timer">02:36</b></div>
+                    </div>
+                    <div class="mission-line"><svg class="icon"><use href="#i-badge"/></svg><span>堵住小偷四周的路</span><b id="blocked">2 / 4</b></div>
+                    <div class="board-frame"><div id="board" class="board" role="group" aria-label="六乘六巡逻棋盘"></div></div>
+                    <div class="tray-heading"><h3>你的巡逻小队</h3><button class="text-button" data-action="undo" id="undo-button"><svg class="icon"><use href="#i-back"/></svg>撤销</button></div>
+                    <div id="tray" class="piece-tray" role="group" aria-label="选择警察积木"></div>
+                    <div class="selection-row"><span id="selection-text">先选小队，再点棋盘放置</span><button class="rotate-button" data-action="rotate" id="rotate-button"><svg class="icon"><use href="#i-reset"/></svg>旋转</button></div>
+                    <p class="game-tip">首次上岗才计步 · 4 步以内拿三星</p>
+                </div>
+                <footer class="game-toolbar">
+                    <button data-action="pause"><svg class="icon"><use href="#i-pause"/></svg><span>暂停</span></button>
+                    <button class="hint-button" data-action="hint"><svg class="icon"><use href="#i-hint"/></svg><span>提示一下</span><small>免费</small></button>
+                    <button data-action="reset"><svg class="icon"><use href="#i-reset"/></svg><span>重置</span></button>
+                </footer>
+            </section>
+
+            <section id="result" class="screen result-screen" aria-labelledby="result-title" hidden>
+                <header class="app-top"><span class="mini-brand"><svg class="icon"><use href="#i-badge"/></svg> 巡逻报告</span><span class="eyebrow" id="result-level">第 08 关</span></header>
+                <div class="screen-scroll result-content">
+                    <div class="result-seal"><svg id="result-icon" class="icon"><use href="#i-badge"/></svg><span class="seal-spark spark-one">✦</span><span class="seal-spark spark-two">✦</span></div>
+                    <span class="eyebrow" id="result-kicker">MISSION COMPLETE</span>
+                    <h2 id="result-title">漂亮！成功收网</h2>
+                    <p id="result-subtitle">小镇恢复平静，你就是今日机智担当。</p>
+                    <div id="result-stars" class="result-stars" aria-label="获得三星"></div>
+                    <div class="result-ticket"><span class="ticket-caption">本次巡逻成绩单</span><strong id="result-score">1,280<small>分</small></strong><div class="ticket-stats"><span>出动警队<b id="result-moves">3 步</b></span><span>行动用时<b id="result-time">00:42</b></span></div></div>
+                    <p class="result-note" id="result-note">下一站的小镇，正等着你！</p>
+                </div>
+                <footer class="result-actions">
+                    <button class="button primary" data-action="next" id="next-button">下一关，出发<svg class="icon"><use href="#i-arrow"/></svg></button>
+                    <div class="two-buttons"><button class="button secondary" data-action="replay"><svg class="icon"><use href="#i-reset"/></svg>重新开始</button><button class="button secondary" data-action="share"><svg class="icon"><use href="#i-share"/></svg>分享战绩</button></div>
+                    <button class="text-button" data-action="menu">返回主菜单</button>
+                </footer>
+            </section>
+
+            <section id="settings" class="screen" aria-labelledby="settings-title" hidden>
+                <header class="page-header"><button class="icon-button" data-action="menu" aria-label="返回主菜单"><svg class="icon"><use href="#i-back"/></svg></button><h2 id="settings-title">舒适地玩</h2><span class="header-spacer"></span></header>
+                <div class="screen-scroll settings-content">
+                    <div class="section-intro"><svg class="icon"><use href="#i-settings"/></svg><h3>你的游戏，你做主</h3><p>调到刚刚好的快乐频率。</p></div>
+                    <h3 class="section-label">声音与反馈</h3>
+                    <div class="settings-group">
+                        <div class="setting-row"><span><svg class="icon"><use href="#i-sound"/></svg>游戏音效</span><button id="sound-switch" class="switch" role="switch" aria-checked="true" aria-label="游戏音效" data-action="sound"><span></span></button></div>
+                        <div class="volume-setting"><label for="volume">音效音量 <output id="volume-value">65%</output></label><input id="volume" type="range" min="0" max="100" value="65" aria-label="音效音量"></div>
+                        <div class="setting-row"><div><span>轻触反馈</span><small>设备支持时，给予轻微振动</small></div><button id="haptics-switch" class="switch" role="switch" aria-checked="true" aria-label="轻触反馈" data-action="haptics"><span></span></button></div>
+                    </div>
+                    <h3 class="section-label">关于与约定</h3>
+                    <div class="settings-group">
+                        <button class="setting-link" data-action="privacy">隐私说明<svg class="icon"><use href="#i-arrow"/></svg></button>
+                        <button class="setting-link" data-action="terms">用户协议<svg class="icon"><use href="#i-arrow"/></svg></button>
+                        <button class="setting-link" data-action="about">关于口袋巡逻队<svg class="icon"><use href="#i-arrow"/></svg></button>
+                    </div>
+                    <p class="settings-footnote">UI 设计效果稿 · v1.0<br>页面内容为设计示例，未接入平台服务。</p>
+                </div>
+                <footer class="page-footer"><button class="button primary" data-action="menu">设置好了，回小镇</button></footer>
+            </section>
+
+            <section id="profile" class="screen" aria-labelledby="profile-title" hidden>
+                <header class="page-header"><button class="icon-button" data-action="menu" aria-label="返回主菜单"><svg class="icon"><use href="#i-back"/></svg></button><h2 id="profile-title">我的巡逻手册</h2><button class="icon-button" data-action="settings" aria-label="打开设置"><svg class="icon"><use href="#i-settings"/></svg></button></header>
+                <div class="screen-scroll profile-content">
+                    <div class="profile-avatar"><svg class="icon"><use href="#i-user"/></svg><span><svg class="icon"><use href="#i-check"/></svg></span></div>
+                    <span class="eyebrow">HELLO, LITTLE HERO</span><h3>见习巡逻员</h3><p>每一点机智，都值得被记录。</p><span class="local-label">本机游客 · 无需登录</span>
+                    <div class="profile-stats"><div><b id="profile-completed">7</b><span>已通关</span></div><div><b data-total-stars>18</b><span>收集星星</span></div><div><b id="profile-best">1,280</b><span>最高得分</span></div></div>
+                    <div class="achievement"><svg class="icon"><use href="#i-badge"/></svg><div><h4 id="achievement-title">第一枚警徽</h4><p id="achievement-description">小镇因为你的机智，多了一份安心。</p></div><span id="achievement-status">已点亮</span></div>
+                    <button class="setting-link" data-action="levels">查看我的巡逻地图<svg class="icon"><use href="#i-arrow"/></svg></button>
+                    <button class="setting-link danger-text" data-action="clear">清除本机游戏记录<svg class="icon"><use href="#i-reset"/></svg></button>
+                    <p class="muted">个人中心展示数据，不代表真实账号。</p>
+                </div>
+                <footer class="page-footer"><button class="button primary" data-action="start">再来一局<svg class="icon"><use href="#i-play"/></svg></button></footer>
+            </section>
+
+            <div id="modal-layer" class="modal-layer" hidden>
+                <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" tabindex="-1">
+                    <button id="modal-close" class="icon-button modal-close" data-action="dismiss" aria-label="关闭弹窗"><svg class="icon"><use href="#i-close"/></svg></button>
+                    <div id="modal-emblem" class="modal-emblem"><svg class="icon"><use href="#i-badge"/></svg></div>
+                    <h2 id="modal-title"></h2>
+                    <div id="modal-body" class="modal-body"></div>
+                    <div id="modal-actions" class="modal-actions"></div>
+                </section>
+            </div>
+            <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+            <noscript><div class="noscript">请启用 JavaScript 以切换设计页面。</div></noscript>
+        </main>
+        <div class="desktop-caption"><span class="caption-line"></span> 你的快乐，现在开局 <span class="caption-line"></span></div>
+        <footer class="desktop-footer"><span>© 2026 POCKET PATROL</span><span>一点点思考，满满的成就感。</span><span>MADE FOR LITTLE BREAKS</span></footer>
+    </div>
+    <script>
+        // Display-only preview: no game rules, persistence, account or platform APIs.
+        const $ = selector => document.querySelector(selector);
+        const icon = name => `<svg class="icon" aria-hidden="true"><use href="#i-${name}"/></svg>`;
+        let bootTimer, toastTimer, previousFocus;
+        document.querySelectorAll("[data-total-stars]").forEach(node => node.textContent = "18");
+        document.querySelectorAll("[data-unlocked]").forEach(node => node.textContent = "8");
+        $("#completed-count").textContent = "7";
+        $("#result-stars").innerHTML = icon("star").repeat(3);
+        $("#level-grid").innerHTML = Array.from({ length: 24 }, (_, i) => {
+            const n = i + 1;
+            return `<button class="level-tile ${n === 8 ? "current" : n > 8 ? "locked" : ""}" data-action="${n > 8 ? "locked" : "start"}" aria-label="第${n}关，${n > 8 ? "未解锁" : n === 8 ? "待挑战" : "已通关"}">${n > 8 ? icon("lock") : `<b>${String(n).padStart(2, "0")}</b>`}<small>${n > 8 ? String(n).padStart(2, "0") : n === 8 ? "出发！" : n % 3 ? "★★★" : "★★☆"}</small></button>`;
+        }).join("");
+        const boardArt = [
+            "crosswalk", "building", "building", "building", "", "crosswalk",
+            "building", "building", "police", "police", "thief", "",
+            "", "building", "police", "building", "police", "",
+            "", "building", "", "building", "police", "police",
+            "", "", "building", "building", "building", "suggested",
+            "crosswalk", "", "building", "building", "", "crosswalk"
+        ];
+        $("#board").innerHTML = boardArt.map((type, i) => `<div class="board-cell ${type}" aria-label="${type === "thief" ? "小偷" : type === "building" ? "建筑障碍" : type === "police" ? "警察积木" : "街道"}">${type === "thief" ? icon("thief") : type === "building" && i % 2 ? icon("home") : type === "police" && [8, 22].includes(i) ? icon("badge") : ""}</div>`).join("");
+        const silhouettes = [[2, 4, 5, 6], [2, 5, 6], [4, 5, 6], [4, 5, 8], [1, 4, 7, 8], [3, 6, 8, 9]];
+        $("#tray").innerHTML = silhouettes.map((cells, i) => `<button class="piece-choice ${i === 3 ? "selected" : ""}" data-action="piece" aria-label="小队 ${i + 1}，展示选中状态"><span class="mini-piece">${cells.map(c => `<i style="grid-area:${Math.ceil(c / 3)} / ${(c - 1) % 3 + 1}"></i>`).join("")}</span><small>0${i + 1}</small></button>`).join("");
+        function toast(text) {
+            clearTimeout(toastTimer);
+            $("#toast").textContent = text;
+            $("#toast").hidden = false;
+            toastTimer = setTimeout(() => $("#toast").hidden = true, 2400);
+        }
+        function dismiss() {
+            $("#modal-layer").hidden = true;
+            document.querySelectorAll(".screen").forEach(screen => screen.inert = false);
+            if (previousFocus && !previousFocus.closest("[hidden]")) previousFocus.focus({ preventScroll: true });
+        }
+        function modal(title, body, actions) {
+            previousFocus = document.activeElement;
+            $("#modal-title").textContent = title;
+            $("#modal-body").innerHTML = body;
+            $("#modal-actions").innerHTML = actions || '<button class="button primary" data-action="dismiss">知道啦</button>';
+            $("#modal-layer").hidden = false;
+            document.querySelectorAll(".screen").forEach(screen => screen.inert = true);
+            $("#modal-close").focus({ preventScroll: true });
+        }
+        function show(page) {
+            clearTimeout(bootTimer);
+            dismiss();
+            const target = page === "win" || page === "lose" ? "result" : page === "pause" ? "game" : page;
+            document.querySelectorAll(".screen").forEach(screen => { screen.hidden = screen.id !== target; });
+            $("#preview-page").value = page;
+            $("#toast").hidden = true;
+            if (target === "result") {
+                const lost = page === "lose";
+                $("#result").classList.toggle("failure", lost);
+                $("#result-title").textContent = lost ? "差一点点，再试一次" : "漂亮！成功收网";
+                $("#result-kicker").textContent = lost ? "TAKE A LITTLE BREATH" : "MISSION COMPLETE";
+                $("#result-subtitle").textContent = lost ? "小偷溜走啦，下次换个思路一定行。" : "小镇恢复平静，你就是今日机智担当。";
+                $("#result-icon").innerHTML = `<use href="#i-${lost ? "thief" : "badge"}"/>`;
+                $("#result-score").innerHTML = `${lost ? "240" : "1,280"}<small>分</small>`;
+                $("#result-time").textContent = lost ? "03:00" : "00:42";
+                $("#result-moves").textContent = lost ? "5 步" : "3 步";
+                $("#result-stars").setAttribute("aria-label", lost ? "未获得星星" : "获得三星");
+                $("#result-note").textContent = lost ? "试试先堵住路口，再安排其他小队。" : "下一站的小镇，正等着你！";
+                $("#next-button").innerHTML = `${lost ? "再试一次，我可以" : "下一关，出发"}${icon(lost ? "reset" : "arrow")}`;
+            }
+            if (page === "pause") modal("休息一下吧", "<p>小镇很安静，巡逻队正在等你。</p><p>准备好了，我们再一起出发。</p>", '<button class="button primary" data-action="dismiss">继续游戏</button><button class="button secondary" data-action="menu">返回小镇</button>');
+            if (page === "boot") {
+                $("#loading-fill").style.width = "0%";
+                $("#loading-text").textContent = "正在整理巡逻装备… 0%";
+                $(".loading-track").setAttribute("aria-valuenow", "0");
+                bootTimer = setTimeout(() => {
+                    $("#loading-fill").style.width = "100%";
+                    $("#loading-text").textContent = "准备好了，快乐出发！100%";
+                    $(".loading-track").setAttribute("aria-valuenow", "100");
+                    bootTimer = setTimeout(() => show("menu"), 900);
+                }, 300);
+            }
+        }
+        $("#preview-page").addEventListener("change", event => show(event.target.value));
+        $("#volume").addEventListener("input", event => $("#volume-value").textContent = `${event.target.value}%`);
+        document.addEventListener("click", event => {
+            const button = event.target.closest("[data-action]");
+            if (!button) return;
+            const action = button.dataset.action;
+            if (["menu", "levels", "settings", "profile"].includes(action)) return show(action);
+            if (["start", "next", "replay"].includes(action)) return show("game");
+            if (action === "leave") return show("menu");
+            if (action === "pause") return show("pause");
+            if (action === "dismiss") return dismiss();
+            if (action === "sound" || action === "haptics") return button.setAttribute("aria-checked", button.getAttribute("aria-checked") === "true" ? "false" : "true");
+            if (action === "piece") {
+                document.querySelectorAll(".piece-choice").forEach(node => node.classList.remove("selected"));
+                button.classList.add("selected");
+                return;
+            }
+            if (action === "share") return modal("分享你的机智", "<p>小小的成就，也值得和朋友分享。</p>", '<button class="button primary" data-action="share-demo">分享给微信好友</button><button class="button secondary" data-action="share-demo">分享给抖音好友</button>');
+            if (action === "privacy") return modal("隐私说明", "<p>此页为隐私协议的版式预览。</p><p>正式上线版本需在此展示运营主体、信息处理目的与范围、第三方服务、保存期限、用户权利及联系方式，并与平台隐私声明保持一致。</p><p>当前效果稿不接入账号、存档或统计服务；主视觉图片通过网络加载。</p>");
+            if (action === "terms") return modal("用户协议", "<p>此页为用户协议的版式预览，不构成正式服务条款。</p><p>正式版本需补充服务主体、游戏服务规则、未成年人保护、知识产权、争议处理与联系方式。</p>");
+            if (action === "about") return modal("小小巡逻队", "<p>动动小脑筋，小偷无处躲。</p><p>口袋巡逻队 · UI 设计效果稿 v1.0</p><p>当前仅展示页面视觉与按钮状态，所有数值均为示例。</p>");
+            if (action === "help") return modal("怎样围住小偷？", "<p>① 选择一支巡逻小队<br>② 旋转积木，找到合适位置<br>③ 堵住小偷四周的路</p><p>效果稿不执行真实玩法，请从页面选择器查看胜利与失败结算。</p>");
+            if (action === "reset") return toast("重置按钮效果预览，示例棋盘保持不变");
+            if (action === "hint") return toast("提示效果：优先堵住右下方的路口");
+            if (action === "locked") return toast("完成上一关，即可解锁这段旅程");
+            if (action === "share-demo") return toast("分享面板样式展示，未接入平台接口");
+            if (action === "clear") return modal("清除巡逻记录？", "<p>清除后将从第一关重新开始。</p><p>这是确认弹层的设计示例，不会删除任何数据。</p>", '<button class="button primary" data-action="dismiss">保留记录</button><button class="button secondary" data-action="dismiss">确认清除</button>');
+            toast("仅展示按钮反馈，不执行游戏逻辑");
+        });
+        document.addEventListener("keydown", event => {
+            if ($("#modal-layer").hidden) return;
+            if (event.key === "Escape") dismiss();
+            if (event.key === "Tab") {
+                const focusable = [...$("#modal-layer").querySelectorAll("button")];
+                const first = focusable[0], last = focusable[focusable.length - 1];
+                if (event.shiftKey && document.activeElement === first) { last.focus(); event.preventDefault(); }
+                else if (!event.shiftKey && document.activeElement === last) { first.focus(); event.preventDefault(); }
+            }
+        });
+    </script>
+</body>
+</html>

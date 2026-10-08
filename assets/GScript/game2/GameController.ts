@@ -15,6 +15,7 @@ import { StructurePieces } from './piece/StructurePieces';
 import { DesignFrames, loadDesignFrames, Palette } from './ui/DesignAssets';
 import { GameHudView } from './ui/GameHudView';
 import { GameOverlayView, GameSceneView } from './ui/GameOverlayView';
+import { ResultController } from './ui/ResultController';
 import { GameTrayView } from './ui/GameTrayView';
 import { computeLayout, type GameLayout, Metrics } from './ui/Layout';
 import { addSprite, createNode } from './ui/UIFactory';
@@ -64,6 +65,7 @@ export class GameController extends Component {
 
         this.overlays.bindStart(() => this.onStart());
         this.overlays.bindAgain(() => this.onRestart());
+        this.overlays.bindReport(() => this.onShowReport());
         this.overlays.showStart();
         this.setPiecesInteractable(false);
         this.updateHud();
@@ -233,6 +235,13 @@ export class GameController extends Component {
         this.syncPieces();
         this.setPiecesInteractable(this.started);
         this.updateHud();
+    }
+
+    /** 前往结算页：先取消胜利弹窗延时，再销毁对局节点 */
+    private onShowReport(): void {
+        this.unschedule(this.showWinDelayed);
+        this.node.destroy();
+        void gCtrl.ui.open(ResultController);
     }
 
     private updateHud(): void {

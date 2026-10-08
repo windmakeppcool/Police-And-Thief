@@ -6,7 +6,7 @@ import { LoginCtrl } from './login/LoginCtrl';
 import { registerBUrlByCfg } from './core/res/ResConst';
 import { type PlatformAdapter } from './core/platform/PlatformAdapter';
 import { createPlatformAdapter } from './core/platform/PlatformFactory';
-import { GameController } from './game2/GameController';
+import { MenuController } from './game2/ui/MenuController';
 const { ccclass } = _decorator;
 
 declare global { const gCtrl: GCtrl };
@@ -42,7 +42,7 @@ export class GCtrl extends Component {
         gCtrl.loginCtr.showLogin(async () => {
             // 通过 UIManager 打开登录成功后的游戏控制器
             await gCtrl.res.loadBundleAsync("GameBN");
-            await gCtrl.ui.open(GameController);
+            await gCtrl.ui.open(MenuController);
             console.log("登录成功");
             params.releaseBoostFun();
         });

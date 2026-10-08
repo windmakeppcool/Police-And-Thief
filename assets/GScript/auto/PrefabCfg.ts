@@ -13,4 +13,6 @@ export const PrefabsCfg = {
     Structure4UI: BL("Prefab/StructurePiece/StructureUI-004", "GameBN"),
     BoardGridView: BL("Prefab/BoardGrid", "GameBN"),
     GameController: BL("Prefab/GameCtrl", "GameBN"),
+    MenuController: BL("Prefab/MenuCtrl", "GameBN"),
+    ResultController: BL("Prefab/ResultCtrl", "GameBN"),
 }

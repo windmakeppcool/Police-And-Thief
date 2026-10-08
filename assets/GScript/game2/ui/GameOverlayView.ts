@@ -1,5 +1,5 @@
 import { Label, Node, Sprite, Vec3 } from 'cc';
-import { DesignFrames, Palette } from './DesignAssets';
+import { DesignFrames, Palette, PocketPalette } from './DesignAssets';
 import { GameLayout } from './Layout';
 import { addSprite, createLabel, createNode } from './UIFactory';
 
@@ -121,6 +121,9 @@ export class GameOverlayView {
         const text = createLabel(card, 'WinText', '', 18, { color: Palette.ink, size: { width: 320, height: 80 } }, new Vec3(0, -10, 0));
         text.getComponent(Label)!.enableWrapText = true;
         this.createPrimaryButton(card, 'AgainButton', '再来一局', new Vec3(0, -118, 0));
+        const report = createNode('ReportButton', card, { width: 220, height: 36 }, new Vec3(0, -168, 0));
+        createLabel(report, 'ReportText', '查看巡逻报告 ›', 20,
+            { color: PocketPalette.mintDeep, size: { width: 220, height: 36 } });
         return card;
     }
 
@@ -140,6 +143,10 @@ export class GameOverlayView {
 
     bindAgain(onAgain: () => void): void {
         this.winCard.getChildByName('AgainButton')!.on(Node.EventType.TOUCH_END, onAgain, this);
+    }
+
+    bindReport(onReport: () => void): void {
+        this.winCard.getChildByName('ReportButton')!.on(Node.EventType.TOUCH_END, onReport, this);
     }
 
     showStart(): void {

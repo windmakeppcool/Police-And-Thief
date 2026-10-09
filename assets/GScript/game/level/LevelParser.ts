@@ -47,7 +47,12 @@ function isInt(value: unknown): value is number {
 }
 
 function isCoordShape(value: unknown): value is JsonCoord {
-    return isPlainObject(value) && isInt(value.x) && isInt(value.y);
+    return (
+        isPlainObject(value) &&
+        Object.keys(value).every(key => key === "x" || key === "y") &&
+        isInt(value.x) &&
+        isInt(value.y)
+    );
 }
 
 function formatCoord(c: JsonCoord): string {
@@ -266,6 +271,9 @@ export function parseLevelIndex(raw: unknown): string[] {
         }
         ids.push(entry);
     });
+    if (ids.length === 0) {
+        errors.push("关卡目录不能是空数组");
+    }
     if (errors.length > 0) throw new LevelParseError(errors);
     return ids;
 }

@@ -44,7 +44,12 @@ export async function loadLevel(levelId: string): Promise<LevelData | null> {
         return null;
     }
     try {
-        return parseLevel(asset.json, BoardPieces);
+        const level = parseLevel(asset.json, BoardPieces);
+        if (level.id !== levelId) {
+            console.error(`[LevelRepository] 关卡 ${levelId} 的 id 字段是 "${level.id}"，与文件名不一致`);
+            return null;
+        }
+        return level;
     } catch (e) {
         report(e, `[LevelRepository] 关卡 ${levelId} 解析异常`);
         return null;

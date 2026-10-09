@@ -119,6 +119,19 @@ describe("结构校验", () => {
         expect(parseErrors({ ...baseLevel(), thief: null }).length).toBeGreaterThan(0);
     });
 
+    it("thief 含未知字段报错", () => {
+        const errors = parseErrors({ ...baseLevel(), thief: { x: 1, y: 1, z: 1 } });
+        expect(errors.some(e => e.startsWith("thief:"))).toBe(true);
+    });
+
+    it("anchor 含未知字段报错", () => {
+        const errors = parseErrors({
+            ...baseLevel(),
+            buildings: [{ pieceId: "Structure-001", anchor: { x: 1, y: 1, note: "x" }, rotation: 0 }],
+        });
+        expect(errors.some(e => e.includes("buildings[0].anchor"))).toBe(true);
+    });
+
     it("buildings 必须是数组", () => {
         expect(parseErrors({ ...baseLevel(), buildings: {} }).length).toBeGreaterThan(0);
     });
@@ -262,6 +275,16 @@ describe("关卡目录解析", () => {
 
     it("不是数组时报错", () => {
         expect(() => parseLevelIndex({})).toThrow(LevelParseError);
+    });
+
+    it("空数组报错", () => {
+        try {
+            parseLevelIndex([]);
+            throw new Error("期望抛出 LevelParseError");
+        } catch (e) {
+            expect(e).toBeInstanceOf(LevelParseError);
+            expect((e as LevelParseError).errors.some(msg => msg.includes("空数组"))).toBe(true);
+        }
     });
 
     it("非字符串或空字符串报错", () => {

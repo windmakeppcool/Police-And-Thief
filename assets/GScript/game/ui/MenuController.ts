@@ -2,7 +2,7 @@ import { _decorator, Component, Node, UITransform, Vec3 } from 'cc';
 import { EViewLayer } from '../../core/ui/EViewLayer';
 import { G_VIEW_SIZE } from '../../core/ui/UIManager';
 import { GameController } from '../GameController';
-import { currentLevelId, selectLevel } from '../level/LevelSelection';
+import { selectLevel } from '../level/LevelSelection';
 import { loadLevelIndex } from '../LevelRepository';
 import { DesignFrames, loadDesignFrames, PocketPalette } from './DesignAssets';
 import { LevelsView } from './LevelsView';

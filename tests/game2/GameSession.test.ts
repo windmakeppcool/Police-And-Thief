@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { GameSession } from "../../assets/GScript/game/common/GameSession";
 import { PieceType, type LevelData, type PieceCatalog } from "../../assets/GScript/game/common/GameTypes";
-import { EXAMPLE_LEVEL, EXAMPLE_SOLUTION } from "../../assets/GScript/game/level/LevelData";
+import { LEVEL_01_SOLUTION, loadLevelFile } from "./helpers/levelFixtures";
 import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
 import { TEST_CATALOG } from "./helpers/levelSolver";
+
+const LEVEL_01 = loadLevelFile("level_01");
 
 const EMPTY_LEVEL: LevelData = {
     id: 'unit',
@@ -108,9 +110,9 @@ describe("GameSession 基础操作", () => {
 
 describe("GameSession 关卡规则", () => {
     it("开局时建筑已占用格子且未被围住", () => {
-        const session = new GameSession(EXAMPLE_LEVEL, BoardPieces);
+        const session = new GameSession(LEVEL_01, BoardPieces);
         const occupancy = session.occupancy();
-        const buildingCells = EXAMPLE_LEVEL.buildings.flatMap(b => session.cellsAt(b.pieceId, b.anchor, b.rotation));
+        const buildingCells = LEVEL_01.buildings.flatMap(b => session.cellsAt(b.pieceId, b.anchor, b.rotation));
 
         expect(buildingCells.length).toBe(14);
         expect(occupancy.size).toBe(14);
@@ -119,15 +121,15 @@ describe("GameSession 关卡规则", () => {
     });
 
     it("不能把警力放到建筑或小偷所在格", () => {
-        const session = new GameSession(EXAMPLE_LEVEL, BoardPieces);
-        const building = EXAMPLE_LEVEL.buildings[0];
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        const building = LEVEL_01.buildings[0];
         expect(session.canPlaceAt(building.pieceId, building.anchor)).toBe(false);
-        expect(session.place('PoliceUI-003', EXAMPLE_LEVEL.thief)).toBe(false);
+        expect(session.place('PoliceUI-003', LEVEL_01.thief)).toBe(false);
     });
 
     it("按参考解可以三步围住小偷并拿到三星（纯逻辑层）", () => {
-        const session = new GameSession(EXAMPLE_LEVEL, BoardPieces);
-        for (const step of EXAMPLE_SOLUTION) {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        for (const step of LEVEL_01_SOLUTION) {
             expect(session.canPlaceAt(step.pieceId, step.anchor, step.rotation)).toBe(true);
             expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
         }
@@ -138,8 +140,8 @@ describe("GameSession 关卡规则", () => {
     });
 
     it("按 UI 的操作方式（托盘预转向 + 落子）也能三步通关", () => {
-        const session = new GameSession(EXAMPLE_LEVEL, BoardPieces);
-        for (const step of EXAMPLE_SOLUTION) {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        for (const step of LEVEL_01_SOLUTION) {
             // 玩家在托盘里点按棋子调好朝向（每点一次顺时针 90°）
             while (session.getRotation(step.pieceId) !== step.rotation) {
                 expect(session.rotateInTray(step.pieceId)).toBe(true);

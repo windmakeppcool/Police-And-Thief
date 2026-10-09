@@ -55,7 +55,10 @@ describe("关卡 JSON 资料", () => {
 
             const occupancy = new Map<string, string>();
             blocked.forEach(cell => occupancy.set(coordKey(cell), "building"));
-            expect(isThiefCaptured(level.gridSize, level.thief, occupancy)).toBe(false);
+            expect(
+                isThiefCaptured(level.gridSize, level.thief, occupancy),
+                `${levelId} 开局不应已被围死`,
+            ).toBe(false);
 
             const solverPieces = enumeratePlacements(POLICE_ONLY, level.gridSize, level.thief);
             const min = minMovesToCapture(solverPieces, level.gridSize, level.thief, blocked, SOLVE_LIMIT);

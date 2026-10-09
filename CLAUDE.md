@@ -13,7 +13,7 @@ Cocos Asset Bundle 划分：
 - `assets/Boost`：启动 bundle，包含 `Main.scene` 和 `boost` 组件。
 - `assets/GScript`：bundle 名为 `GScriptBN`，包含全局 TypeScript 代码和运行时基础设施。
 - `assets/Login`：bundle 名为 `LoginBN`，当前主要包含登录音频资源。
-- `assets/Game`：bundle 名为 `GameBN`，包含游戏预制体与拆分后的设计稿图片素材（关卡数据在代码中的 `game/level/LevelData.ts`）。
+- `assets/Game`：bundle 名为 `GameBN`，包含游戏预制体、拆分后的设计稿图片素材，以及关卡 JSON 资料（`levels/`：`levels.json` 索引 + 每关一个 `level_XX.json`）。
 
 ## 常用命令
 
@@ -69,11 +69,13 @@ npm run typecheck:cocos
 - `game/rules/PlacementValidator.ts`：放置合法性（棋盘内、不踩小偷、不重叠、支持忽略自身占用）。
 - `game/rules/WinCondition.ts`：小偷去路枚举、是否被围住、星级（≤4 步三星、≤5 步两星、其余一星）。
 - `game/common/GameSession.ts`：一局游戏的状态机，负责建筑占用、放置/移动/旋转、撤销历史、步数与胜负；表现层所有合法性判断都交给它。
-- `game/level/LevelData.ts`：示例关卡（`EXAMPLE_LEVEL`）与参考解（`EXAMPLE_SOLUTION`）。关卡中的 `buildings` 会在开局自动摆放为路障。
+- `game/level/LevelParser.ts`：关卡 JSON 解析与校验。JSON 用左上原点列/行坐标（0..gridSize-1），在这里一次换算为内部网格坐标；严格模式拦截未知字段，校验错误一次性收集并按 JSON 坐标报告。
+- `game/level/LevelSelection.ts`：菜单与对局之间传递「当前关卡 id」的模块级状态（`UIManager.open` 不支持传参）。
 
 表现层（Cocos）：
 
 - `game/GameController.ts`：入口组件，挂在 `EViewLayer.Anim`。装配设计稿 UI → 加载棋盘预制体 → 按关卡数据摆放建筑 → 把 6 个警察棋子放进托盘槽位，并驱动开始/撤销/重开/胜利流程与定时动画（警灯、警车顶灯、小偷东张西望）。
+- `game/LevelRepository.ts`：从 `GameBN` 加载 `levels/levels` 与 `levels/<id>` 的 `JsonAsset` 并交给 `LevelParser`。放在 `game/` 根目录而非 `game/level/`，因为后者被 `tsconfig.spec.json` 覆盖、不能 `import 'cc'`。
 - `game/piece/BoardGrid.ts`：绘制棋盘格（四角用斑马线素材）、小偷节点与落点预览（合法/非法两套贴图）。
 - `game/piece/DraggablePiece.ts`：警察棋子交互。托盘 → 棋盘拖拽（超过 8px 才算拖拽）、落点预览、点击原地转向、非法落点弹回并抖动；命中判定用“格子方块并集”，不依赖 `PolygonCollider2D`。
 - `game/piece/StructurePieces.ts`：建筑障碍，只按关卡数据摆放，不参与交互。
@@ -115,6 +117,7 @@ UI 视觉基准是 `design/pocket-patrol-design.md`（“口袋巡逻队”薄�
 ## 玩法规则
 
 - 6×6 棋盘，坐标范围 -3..2，小偷固定在关卡配置的格子；建筑由关卡数据自动摆放，玩家不能移动。
+- 关卡从 `assets/Game/levels/level_XX.json` 读取：可配置小偷位置与建筑摆放（`anchor` + `rotation`）。JSON 坐标是左上原点列/行（x 向右、y 向下），运行时换算为内部坐标；加载时只做静态校验，非法关卡拒入并打印全部错误。可解性由 `tests/game2/LevelJson.test.ts` 扫盘断言。
 - 玩家从托盘拖出警察棋子放到棋盘；点击棋子会顺时针转向 90°：已上场时绕 origin cell 原地转向（需要落点合法），还在托盘时则先调好朝向（`GameSession.rotateInTray`），这样贴边的落点也能直接拖上去。
 - 只有棋子“首次上岗”才计入步数；把已上场的棋子挪到别的格子不计步。
 - 四周去路全部被棋子或建筑占据即获胜；步数 ≤4 三星、≤5 两星，其余一星。
@@ -131,7 +134,7 @@ UI 视觉基准是 `design/pocket-patrol-design.md`（“口袋巡逻队”薄�
 - 修改 Cocos 资源时保留 `.meta` 文件，不要只移动 `.prefab`、图片或场景文件。
 - `core/ui/UIFactory.ts` 是与游戏无关的 UI 构造工具，`addLabel` / `createLabel` 的 `color` 为必填项——core 层不绑定业务配色，漏传会在编译期报错而不是运行时变白字。
 - 新增可测试的规则时放在 `game/rules`、`game/common`、`game/level` 中（保持无 `cc` 依赖），并在 `tests/game2` 补用例。
-- 调整关卡时同步检查 `tests/game2/LevelData.test.ts`：它会校验建筑合法性、开局不会被一步围死，并用求解器断言“最少三步”。
+- 调整关卡 JSON 后跑 `npm test`：`tests/game2/LevelJson.test.ts` 会扫盘校验 `levels.json` 与关卡文件一一对应、每关结构合法、开局不会被围死且四步内可解；`tests/game2/LevelData.test.ts` 另外断言 level_01 最少三步。
 - UI 布局常量集中在 `game/ui/Layout.ts`，设计分辨率为 1280×720（`FIXED_HEIGHT`），改布局优先改这里的 `Metrics`。
 - `typecheck:cocos` 依赖 Cocos Creator 生成的 `temp/tsconfig.cocos.json`；缺失时需要先用 Cocos Creator 打开项目。
 - `npm install` 当前可能报告来自测试工具链依赖的中等漏洞，不要直接运行破坏性升级命令；若本机 npm 缓存权限异常，可用 `npm install --cache .npm-cache`。

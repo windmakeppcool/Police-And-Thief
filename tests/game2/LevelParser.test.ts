@@ -279,6 +279,7 @@ describe("关卡目录解析", () => {
             parseLevelIndex(["level_01", "level_01"]);
             throw new Error("期望抛出 LevelParseError");
         } catch (e) {
+            expect(e).toBeInstanceOf(LevelParseError);
             expect((e as LevelParseError).errors.some(msg => msg.includes("重复"))).toBe(true);
         }
     });

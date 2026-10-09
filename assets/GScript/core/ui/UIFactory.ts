@@ -51,14 +51,18 @@ export function addSprite(node: Node, frame: SpriteFrame | null, options: Sprite
 
 export type LabelOptions = {
     size?: Size2;
-    color?: Color;
+    /**
+     * 文字颜色，必填。core 层不绑定业务配色，由调用方显式指定，
+     * 避免漏传时文字在浅色背景上不可见。
+     */
+    color: Color;
     bold?: boolean;
     align?: HorizontalTextAlignment;
     verticalAlign?: VerticalTextAlignment;
     lineHeight?: number;
 };
 
-export function addLabel(node: Node, text: string, fontSize: number, options: LabelOptions = {}): Label {
+export function addLabel(node: Node, text: string, fontSize: number, options: LabelOptions): Label {
     const label = node.addComponent(Label);
     label.string = text;
     label.fontSize = fontSize;
@@ -66,7 +70,7 @@ export function addLabel(node: Node, text: string, fontSize: number, options: La
     // 不指定自定义 font 资源，运行时按平台回退到 微软雅黑 / 苹方 / 思源黑体 等系统字体。
     label.useSystemFont = true;
     label.lineHeight = options.lineHeight ?? Math.round(fontSize * 1.3);
-    label.color = options.color ?? new Color(34, 49, 91, 255);
+    label.color = options.color;
     label.isBold = options.bold ?? false;
     label.horizontalAlign = options.align ?? Label.HorizontalAlign.CENTER;
     label.verticalAlign = options.verticalAlign ?? Label.VerticalAlign.CENTER;
@@ -77,7 +81,7 @@ export function addLabel(node: Node, text: string, fontSize: number, options: La
 }
 
 /** 创建带文字的标签节点 */
-export function createLabel(parent: Node, name: string, text: string, fontSize: number, options: LabelOptions = {}, position?: Vec3): Node {
+export function createLabel(parent: Node, name: string, text: string, fontSize: number, options: LabelOptions, position?: Vec3): Node {
     const node = createNode(name, parent, options.size, position);
     addLabel(node, text, fontSize, options);
     return node;

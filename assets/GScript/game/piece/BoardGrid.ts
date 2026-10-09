@@ -3,7 +3,7 @@ import { EViewLayer } from '../../core/ui/EViewLayer';
 import { GameSession } from '../common/GameSession';
 import { Coord } from '../common/GameTypes';
 import type { DesignFrames } from '../ui/DesignAssets';
-import { addSprite, createNode } from '../ui/UIFactory';
+import { addSprite, createNode } from '../../core/ui/UIFactory';
 const { ccclass, property } = _decorator;
 
 @ccclass('BoardGrid')

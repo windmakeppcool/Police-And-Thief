@@ -1,16 +1,6 @@
 import { Color, SpriteFrame } from 'cc';
 import { BL } from '../../core/res/ResConst';
-import { applyInsets } from './UIFactory';
-
-/** 设计稿“积木小镇”配色令牌，与 design/game-ui.html 保持一致 */
-export const Palette = {
-    sky: new Color(110, 198, 238, 255),
-    ink: new Color(34, 49, 91, 255),
-    cream: new Color(255, 246, 227, 255),
-    police: new Color(46, 124, 214, 255),
-    thief: new Color(240, 78, 69, 255),
-    white: new Color(255, 255, 255, 255),
-};
+import { applyInsets } from '../../core/ui/UIFactory';
 
 /** 设计稿“口袋巡逻队”配色令牌，与 design/pocket-patrol.css 保持一致 */
 export const PocketPalette = {

@@ -6,7 +6,7 @@ import { MenuController } from './MenuController';
 import { DesignFrames, loadDesignFrames } from './DesignAssets';
 import { computeMenuMetrics, type MenuMetrics } from './MenuWidgets';
 import { ResultView } from './ResultView';
-import { addSprite, createNode } from './UIFactory';
+import { addSprite, createNode } from '../../core/ui/UIFactory';
 const { ccclass } = _decorator;
 
 /**

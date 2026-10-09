@@ -9,7 +9,7 @@ import { MenuHomeView } from './MenuHomeView';
 import { ProfileView } from './ProfileView';
 import { SettingsView } from './SettingsView';
 import { computeMenuMetrics, type MenuMetrics } from './MenuWidgets';
-import { addSprite, createNode } from './UIFactory';
+import { addSprite, createNode } from '../../core/ui/UIFactory';
 const { ccclass } = _decorator;
 
 /**

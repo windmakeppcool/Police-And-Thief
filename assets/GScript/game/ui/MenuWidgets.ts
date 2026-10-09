@@ -1,7 +1,7 @@
 import { Color, HorizontalTextAlignment, Node, Sprite, SpriteFrame, tween, Vec3 } from 'cc';
 import { G_VIEW_SIZE } from '../../core/ui/UIManager';
 import { DesignFrames, PocketPalette } from './DesignAssets';
-import { addLabel, addSprite, createNode, type Size2 } from './UIFactory';
+import { addLabel, addSprite, createNode, type Size2 } from '../../core/ui/UIFactory';
 
 /** 设计稿基准尺寸（pocket-patrol.html 中 .app 的 414×820） */
 export const DESIGN_W = 414;

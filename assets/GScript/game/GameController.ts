@@ -12,13 +12,13 @@ import { PIECE_PREFAB_KEYS } from './piece/PiecePrefabs';
 import { BoardPieces } from './piece/pieces';
 import { PolicePieces } from './piece/PolicePieces';
 import { StructurePieces } from './piece/StructurePieces';
-import { DesignFrames, loadDesignFrames, Palette } from './ui/DesignAssets';
+import { DesignFrames, loadDesignFrames, PocketPalette } from './ui/DesignAssets';
 import { GameHudView } from './ui/GameHudView';
 import { GameOverlayView, GameSceneView } from './ui/GameOverlayView';
 import { ResultController } from './ui/ResultController';
 import { GameTrayView } from './ui/GameTrayView';
 import { computeLayout, type GameLayout, Metrics } from './ui/Layout';
-import { addSprite, createNode } from './ui/UIFactory';
+import { addSprite, createNode } from '../core/ui/UIFactory';
 const { ccclass } = _decorator;
 
 /**
@@ -79,7 +79,7 @@ export class GameController extends Component {
 
         const boardSize = { width: Metrics.boardOuter, height: Metrics.boardOuter };
         const panel = createNode('BoardPanel', this.node, boardSize, new Vec3(0, this.layout.boardY, 0));
-        addSprite(panel, this.frames.cardBg, { size: boardSize, sliced: true, color: Palette.ink });
+        addSprite(panel, this.frames.cardBg, { size: boardSize, sliced: true, color: PocketPalette.ink });
 
         this.hud = new GameHudView(this.node, this.frames, this.layout, {
             onUndo: () => this.onUndo(),

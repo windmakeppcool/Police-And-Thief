@@ -3,7 +3,7 @@ import { DesignFrames, PocketPalette } from './DesignAssets';
 import {
     box, boxSize, buildStarCounter, labelInBox, localBox, localIcon, localLabel, makeButton, type MenuMetrics,
 } from './MenuWidgets';
-import { addSprite } from './UIFactory';
+import { addSprite } from '../../core/ui/UIFactory';
 
 export type MenuHomeCallbacks = {
     onStart: () => void;

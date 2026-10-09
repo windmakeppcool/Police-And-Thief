@@ -1,7 +1,7 @@
 import { Color, Label, Node, UITransform, Vec3 } from 'cc';
 import { DesignFrames, PocketPalette } from './DesignAssets';
 import { box, boxCenter, boxSize, labelInBox, type MenuMetrics } from './MenuWidgets';
-import { addSprite, createNode, setSize } from './UIFactory';
+import { addSprite, createNode, setSize } from '../../core/ui/UIFactory';
 
 /** 启动加载页：警徽底板 + 进度条，进度走完后由控制器切到主菜单 */
 export class MenuBootView {

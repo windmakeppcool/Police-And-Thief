@@ -1,7 +1,7 @@
 import { Label, Node, Sprite, Vec3 } from 'cc';
-import { DesignFrames, Palette, PocketPalette } from './DesignAssets';
+import { DesignFrames, PocketPalette } from './DesignAssets';
 import { GameLayout } from './Layout';
-import { addSprite, createLabel, createNode } from './UIFactory';
+import { addSprite, createLabel, createNode } from '../../core/ui/UIFactory';
 
 /** 背景（对应 pocket-patrol.css `.game-screen { background: #eff3e5; }`）+ 远景天际线 + 棋盘与托盘之间的街景装饰带 */
 export class GameSceneView {
@@ -92,7 +92,7 @@ export class GameOverlayView {
 
     private buildCard(name: string): Node {
         const card = createNode(name, this.node, { width: 400, height: 380 });
-        addSprite(card, this.frames.cardBg, { size: { width: 400, height: 380 }, sliced: true, color: Palette.cream });
+        addSprite(card, this.frames.cardBg, { size: { width: 400, height: 380 }, sliced: true, color: PocketPalette.cream });
         return card;
     }
 
@@ -100,12 +100,12 @@ export class GameOverlayView {
         const card = this.buildCard('StartCard');
         const plate = createNode('WantedPlate', card, { width: 280, height: 120 }, new Vec3(0, 110, 0));
         plate.angle = -2.5;
-        addSprite(plate, this.frames.btnRound, { size: { width: 280, height: 120 }, sliced: true, color: Palette.white });
-        createLabel(plate, 'WantedSmall', 'WANTED · 通缉令', 16, { color: Palette.thief, bold: true }, new Vec3(0, 34, 0));
-        createLabel(plate, 'WantedTitle', '警察抓小偷', 40, { color: Palette.ink, bold: true }, new Vec3(0, -16, 0));
+        addSprite(plate, this.frames.btnRound, { size: { width: 280, height: 120 }, sliced: true, color: PocketPalette.whiteish });
+        createLabel(plate, 'WantedSmall', 'WANTED · 通缉令', 16, { color: PocketPalette.orange, bold: true }, new Vec3(0, 34, 0));
+        createLabel(plate, 'WantedTitle', '警察抓小偷', 40, { color: PocketPalette.ink, bold: true }, new Vec3(0, -16, 0));
 
         createLabel(card, 'StartDesc', '小偷躲进了积木小镇！\n把警察小队拖进街区、点按转向，\n封住他上下左右所有去路就算抓到。', 18,
-            { color: Palette.ink, size: { width: 340, height: 110 } }, new Vec3(0, 0, 0));
+            { color: PocketPalette.ink, size: { width: 340, height: 110 } }, new Vec3(0, 0, 0));
 
         this.createPrimaryButton(card, 'StartButton', '开始巡逻', new Vec3(0, -122, 0));
         return card;
@@ -118,8 +118,8 @@ export class GameOverlayView {
             addSprite(star, this.frames.starInactive, { size: { width: 48, height: 48 } });
             this.winStars.push(star);
         }
-        createLabel(card, 'WinTitle', '抓住啦！', 40, { color: Palette.ink, bold: true }, new Vec3(0, 54, 0));
-        const text = createLabel(card, 'WinText', '', 18, { color: Palette.ink, size: { width: 320, height: 80 } }, new Vec3(0, -10, 0));
+        createLabel(card, 'WinTitle', '抓住啦！', 40, { color: PocketPalette.ink, bold: true }, new Vec3(0, 54, 0));
+        const text = createLabel(card, 'WinText', '', 18, { color: PocketPalette.ink, size: { width: 320, height: 80 } }, new Vec3(0, -10, 0));
         text.getComponent(Label)!.enableWrapText = true;
         this.createPrimaryButton(card, 'AgainButton', '再来一局', new Vec3(0, -118, 0));
         const report = createNode('ReportButton', card, { width: 220, height: 36 }, new Vec3(0, -168, 0));
@@ -134,7 +134,7 @@ export class GameOverlayView {
         button.on(Node.EventType.TOUCH_START, () => { sprite.spriteFrame = this.frames.btnPrimaryPressed ?? sprite.spriteFrame; });
         button.on(Node.EventType.TOUCH_END, () => { sprite.spriteFrame = this.frames.btnPrimary ?? sprite.spriteFrame; });
         button.on(Node.EventType.TOUCH_CANCEL, () => { sprite.spriteFrame = this.frames.btnPrimary ?? sprite.spriteFrame; });
-        createLabel(button, `${name}Text`, text, 28, { color: Palette.ink, bold: true, size: { width: 200, height: 64 } });
+        createLabel(button, `${name}Text`, text, 28, { color: PocketPalette.ink, bold: true, size: { width: 200, height: 64 } });
         return button;
     }
 

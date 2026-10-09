@@ -1,7 +1,7 @@
 import { Label, Node, Sprite, SpriteFrame, UIOpacity, Vec3 } from 'cc';
-import { DesignFrames, Palette } from './DesignAssets';
+import { DesignFrames, PocketPalette } from './DesignAssets';
 import { GameLayout, Metrics } from './Layout';
-import { addLabel, addSprite, createLabel, createNode } from './UIFactory';
+import { addLabel, addSprite, createLabel, createNode } from '../../core/ui/UIFactory';
 
 export type HudHandlers = {
     onUndo: () => void;
@@ -31,10 +31,10 @@ export class GameHudView {
         const badgeWidth = 190;
         const badgeX = -width / 2 + Metrics.margin + badgeWidth / 2;
         const badge = createNode('LevelBadge', this.node, { width: badgeWidth, height: 52 }, new Vec3(badgeX, 0, 0));
-        addSprite(badge, frames.btnRound, { size: { width: badgeWidth, height: 52 }, sliced: true, color: Palette.cream });
+        addSprite(badge, frames.btnRound, { size: { width: badgeWidth, height: 52 }, sliced: true, color: PocketPalette.cream });
         const star = createNode('Star', badge, { width: 30, height: 30 }, new Vec3(-badgeWidth / 2 + 30, 0, 0));
         addSprite(star, frames.starActive, { size: { width: 30, height: 30 } });
-        createLabel(badge, 'LevelText', '第 1 关', 24, { color: Palette.ink, bold: true }, new Vec3(18, 0, 0));
+        createLabel(badge, 'LevelText', '第 1 关', 24, { color: PocketPalette.ink, bold: true }, new Vec3(18, 0, 0));
 
         // 警灯条（红蓝交替闪烁）
         const undoSize = 46;
@@ -54,17 +54,17 @@ export class GameHudView {
         this.statusNode = createNode('StatusRow', parent, { width, height: Metrics.statusHeight }, new Vec3(0, layout.statusY, 0));
         const pillWidth = 250;
         const pill = createNode('MovesPill', this.statusNode, { width: pillWidth, height: 34 }, new Vec3(-width / 2 + Metrics.margin + pillWidth / 2, 0, 0));
-        addSprite(pill, frames.btnRound, { size: { width: pillWidth, height: 34 }, sliced: true, color: Palette.ink });
-        this.movesLabel = addLabel(pill, this.movesText(0, 6), 18, { color: Palette.white, bold: true, size: { width: pillWidth - 24, height: 34 } });
+        addSprite(pill, frames.btnRound, { size: { width: pillWidth, height: 34 }, sliced: true, color: PocketPalette.ink });
+        this.movesLabel = addLabel(pill, this.movesText(0, 6), 18, { color: PocketPalette.whiteish, bold: true, size: { width: pillWidth - 24, height: 34 } });
 
         createLabel(this.statusNode, 'GoalText', '围住小偷，别让他跑了！', 20,
-            { color: Palette.white, bold: true, align: Label.HorizontalAlign.RIGHT, size: { width: 420, height: Metrics.statusHeight } },
+            { color: PocketPalette.whiteish, bold: true, align: Label.HorizontalAlign.RIGHT, size: { width: 420, height: Metrics.statusHeight } },
             new Vec3(width / 2 - Metrics.margin - 210, 0, 0));
     }
 
     private createRoundButton(name: string, x: number, icon: SpriteFrame | null, onClick: () => void): Node {
         const button = createNode(name, this.node, { width: 46, height: 46 }, new Vec3(x, 0, 0));
-        addSprite(button, this.frames.btnRound, { size: { width: 46, height: 46 }, sliced: true, color: Palette.cream });
+        addSprite(button, this.frames.btnRound, { size: { width: 46, height: 46 }, sliced: true, color: PocketPalette.cream });
         const iconNode = createNode(`${name}Icon`, button, { width: 24, height: 24 });
         addSprite(iconNode, icon, { size: { width: 24, height: 24 } });
         button.on(Node.EventType.TOUCH_END, onClick, this);
@@ -96,7 +96,7 @@ export class GameHudView {
         if (!root) return null;
         const node = createNode('Coach', root, { width: 200, height: 56 });
         addSprite(node, this.frames.coachBubble, { size: { width: 200, height: 56 }, sliced: true });
-        createLabel(node, 'CoachText', text, 18, { color: Palette.white, bold: true, size: { width: 180, height: 48 } });
+        createLabel(node, 'CoachText', text, 18, { color: PocketPalette.whiteish, bold: true, size: { width: 180, height: 48 } });
         node.setWorldPosition(worldPos.clone().add(new Vec3(0, 60, 0)));
         // 气泡必须压在弹层之下（设计稿 z-index 60 < overlay 100）
         const overlays = root.getChildByName('Overlays');

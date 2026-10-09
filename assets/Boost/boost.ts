@@ -1,4 +1,4 @@
-import { _decorator, assetManager, AssetManager, Canvas, Component, Node } from 'cc';
+import { _decorator, assetManager, AssetManager, Canvas, Component, find, Node } from 'cc';
 const { ccclass, property } = _decorator;
 
 @ccclass('boost')
@@ -19,12 +19,16 @@ export class boost extends Component {
             await (gCtrl as any).init({ 
                 canvas2d: this.canvas2d,
                 releaseBoostFun: () => {
-                    // 这里进行销毁首场景的渲染节点和释放资源等操作
-                    if (this.toReleaseNode === null) {
-                        return;
+                    // 优先使用 Inspector 引用，丢失时按名字兜底查找 bg-2x2，
+                    // 防止导入项目后 Inspector 引用断链导致启动背景永远残留。
+                    let target = this.toReleaseNode;
+                    if (!target || !target.isValid) {
+                        target = find("bg-2x2", this.canvas2d?.node ?? this.node.scene);
                     }
-                    this.toReleaseNode.destroy();
-                    this.toReleaseNode = null;
+                    if (target && target.isValid) {
+                        target.destroy();
+                        this.toReleaseNode = null!;
+                    }
                 }
             });
 

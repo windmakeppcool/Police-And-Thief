@@ -62,6 +62,9 @@ export function addLabel(node: Node, text: string, fontSize: number, options: La
     const label = node.addComponent(Label);
     label.string = text;
     label.fontSize = fontSize;
+    // 使用系统字体，保证中文 / CJK 字符不会被默认内置字体渲染成「豆腐块」或乱码；
+    // 不指定自定义 font 资源，运行时按平台回退到 微软雅黑 / 苹方 / 思源黑体 等系统字体。
+    label.useSystemFont = true;
     label.lineHeight = options.lineHeight ?? Math.round(fontSize * 1.3);
     label.color = options.color ?? new Color(34, 49, 91, 255);
     label.isBold = options.bold ?? false;

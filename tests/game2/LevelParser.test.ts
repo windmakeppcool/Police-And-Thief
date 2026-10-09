@@ -3,6 +3,7 @@ import { PieceType, type PieceCatalog } from "../../assets/GScript/game/common/G
 import {
     LevelParseError,
     parseLevel,
+    parseLevelIndex,
     toGridCoord,
     toJsonCoord,
 } from "../../assets/GScript/game/level/LevelParser";
@@ -195,5 +196,90 @@ describe("结构校验", () => {
         });
         expect(errors.some(e => e.includes("(9, 1)"))).toBe(true);
         expect(errors.some(e => e.includes("(6, 1)"))).toBe(false);
+    });
+});
+
+describe("几何校验", () => {
+    /** Structure-001 在 rotation=0 时占 (0,2)(0,1)(0,0)(1,0)，origin 是 (0,0) */
+    it("建筑展开后的格子越界报错", () => {
+        // anchor JSON (5,0) -> 内部 (2,2)：L 形向上两格会越出 y=2
+        const errors = parseErrors({
+            ...baseLevel(),
+            buildings: [{ pieceId: "Structure-001", anchor: { x: 5, y: 0 }, rotation: 0 }],
+        });
+        expect(errors.some(e => e.includes("buildings[0]") && e.includes("超出棋盘范围"))).toBe(true);
+    });
+
+    it("建筑压住小偷报错", () => {
+        // 小偷 JSON (4,1) -> 内部 (1,1)；anchor JSON (4,1) -> 内部 (1,1) 与小偷同格
+        const errors = parseErrors({
+            ...baseLevel(),
+            buildings: [{ pieceId: "Structure-001", anchor: { x: 4, y: 1 }, rotation: 0 }],
+        });
+        expect(errors.some(e => e.includes("buildings[0]") && e.includes("小偷"))).toBe(true);
+    });
+
+    it("建筑互相重叠报错，并指出与哪一个重叠", () => {
+        const errors = parseErrors({
+            ...baseLevel(),
+            buildings: [
+                { pieceId: "Structure-001", anchor: { x: 1, y: 1 }, rotation: 0 },
+                { pieceId: "Structure-001", anchor: { x: 1, y: 1 }, rotation: 90 },
+            ],
+        });
+        expect(errors.some(e => e.includes("buildings[1]") && e.includes("buildings[0]"))).toBe(true);
+    });
+
+    it("两个同形建筑拼在一起时逐格比对出重叠", () => {
+        const errors = parseErrors({
+            ...baseLevel(),
+            buildings: [
+                { pieceId: "Structure-001", anchor: { x: 1, y: 1 }, rotation: 0 },
+                { pieceId: "Structure-001", anchor: { x: 2, y: 1 }, rotation: 0 },
+            ],
+        });
+        expect(errors.some(e => e.includes("重叠"))).toBe(true);
+    });
+
+    it("完全合法的建筑摆放通过校验", () => {
+        // anchor (1,2) -> 内部 (-2,0)：L 形占 (-2,2)(-2,1)(-2,0)(-1,0)
+        // anchor (4,3) -> 内部 (1,-1)：L 形转 180° 占 (1,-3)(1,-2)(1,-1)(0,-1)
+        const level = parseLevel({
+            ...baseLevel(),
+            buildings: [
+                { pieceId: "Structure-001", anchor: { x: 1, y: 2 }, rotation: 0 },
+                { pieceId: "Structure-001", anchor: { x: 4, y: 3 }, rotation: 180 },
+            ],
+        }, CATALOG);
+        expect(level.buildings).toHaveLength(2);
+    });
+});
+
+describe("关卡目录解析", () => {
+    it("返回 id 数组", () => {
+        expect(parseLevelIndex(["level_01", "level_02"])).toEqual(["level_01", "level_02"]);
+    });
+
+    it("不是数组时报错", () => {
+        expect(() => parseLevelIndex({})).toThrow(LevelParseError);
+    });
+
+    it("非字符串或空字符串报错", () => {
+        try {
+            parseLevelIndex(["level_01", "", 3]);
+            throw new Error("期望抛出 LevelParseError");
+        } catch (e) {
+            expect(e).toBeInstanceOf(LevelParseError);
+            expect((e as LevelParseError).errors.length).toBeGreaterThanOrEqual(2);
+        }
+    });
+
+    it("重复 id 报错", () => {
+        try {
+            parseLevelIndex(["level_01", "level_01"]);
+            throw new Error("期望抛出 LevelParseError");
+        } catch (e) {
+            expect((e as LevelParseError).errors.some(msg => msg.includes("重复"))).toBe(true);
+        }
     });
 });

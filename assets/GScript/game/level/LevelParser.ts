@@ -8,7 +8,8 @@ import {
     type Rotation,
 } from "../common/GameTypes";
 import { pieceCells, toAbsoluteCells } from "../rules/PieceGeometry";
-// 几何校验用的 coordKey / isInBoard 在 Task 2 补入
+import { coordKey } from "../rules/BoardOccupancy";
+import { isInBoard } from "../rules/PlacementValidator";
 
 /** JSON 里的列/行坐标：左上角 (0,0)，x 向右、y 向下，范围 0..gridSize-1 */
 export type JsonCoord = Readonly<{ x: number; y: number }>;
@@ -152,7 +153,7 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
         });
     }
 
-    // ── 阶段二：依赖合法 gridSize / 坐标换算的检查（棋盘范围；几何校验后续任务补） ──
+    // ── 阶段二：依赖合法 gridSize / 坐标换算的检查（棋盘范围与几何校验） ──
     // toGridCoord 需要合法 gridSize，这类检查不能放进阶段一
     const usable: Array<{
         index: number;
@@ -196,7 +197,33 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
             });
         }
 
-        // ── 几何校验（Task 2 补全） ──
+        // ── 几何校验：越界 / 压小偷 / 互相重叠 ──
+        // thief 形状非法时阶段一已报错，此时跳过「压小偷」这一项比对
+        const thief = thiefOk ? toGridCoord(raw.thief as JsonCoord, gridSize) : undefined;
+        /** 格子键 -> 先占用它的建筑下标 */
+        const occupied = new Map<string, number>();
+
+        for (const item of usable) {
+            const at = `buildings[${item.index}]`;
+            for (const cell of item.cells) {
+                const jsonCell = toJsonCoord(cell, gridSize);
+                if (!isInBoard(gridSize, cell)) {
+                    errors.push(`${at}: 格子 ${formatCoord(jsonCell)} 超出棋盘范围 0..${gridSize - 1}`);
+                    continue;
+                }
+                if (thief !== undefined && cell.x === thief.x && cell.y === thief.y) {
+                    errors.push(`${at}: 格子 ${formatCoord(jsonCell)} 压住了小偷`);
+                    continue;
+                }
+                const key = coordKey(cell);
+                const owner = occupied.get(key);
+                if (owner !== undefined) {
+                    errors.push(`${at}: 与 buildings[${owner}] 重叠于格子 ${formatCoord(jsonCell)}`);
+                    continue;
+                }
+                occupied.set(key, item.index);
+            }
+        }
     }
 
     if (errors.length > 0) throw new LevelParseError(errors);
@@ -216,4 +243,29 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
             }),
         ),
     };
+}
+
+/**
+ * 解析关卡目录（levels.json）：返回按可选关顺序排列的关卡 id。
+ * 校验失败抛 LevelParseError。
+ */
+export function parseLevelIndex(raw: unknown): string[] {
+    if (!Array.isArray(raw)) {
+        throw new LevelParseError(["关卡目录必须是字符串数组"]);
+    }
+    const errors: string[] = [];
+    const ids: string[] = [];
+    raw.forEach((entry, index) => {
+        if (typeof entry !== "string" || entry.length === 0) {
+            errors.push(`[${index}]: 必须是非空字符串，实际是 ${formatValue(entry)}`);
+            return;
+        }
+        if (ids.includes(entry)) {
+            errors.push(`[${index}]: 关卡 id "${entry}" 重复`);
+            return;
+        }
+        ids.push(entry);
+    });
+    if (errors.length > 0) throw new LevelParseError(errors);
+    return ids;
 }

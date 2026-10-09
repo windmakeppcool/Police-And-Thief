@@ -163,12 +163,37 @@ describe("结构校验", () => {
         expect(errors.length).toBeGreaterThanOrEqual(2);
     });
 
+    it("顶层字段非法时仍收集 buildings 内的独立错误", () => {
+        const errors = parseErrors({
+            ...baseLevel(),
+            id: "",
+            gridSize: 5,
+            buildings: [{ pieceId: "Structure-999", anchor: { x: 1, y: 1 }, rotation: 45 }],
+        });
+        expect(errors.length).toBeGreaterThanOrEqual(4);
+        expect(errors.some(e => e.startsWith("id:"))).toBe(true);
+        expect(errors.some(e => e.startsWith("gridSize:"))).toBe(true);
+        expect(errors.some(e => e.includes("buildings[0].pieceId") && e.includes("Structure-999"))).toBe(true);
+        expect(errors.some(e => e.includes("buildings[0].rotation") && e.includes("45"))).toBe(true);
+    });
+
+    it("entry 的 pieceId 非法时仍收集同 entry 的 anchor / rotation 错误", () => {
+        const errors = parseErrors({
+            ...baseLevel(),
+            buildings: [{ pieceId: "Structure-999", anchor: { x: 9, y: 1 }, rotation: 45 }],
+        });
+        expect(errors.length).toBeGreaterThanOrEqual(3);
+        expect(errors.some(e => e.includes("buildings[0].pieceId"))).toBe(true);
+        expect(errors.some(e => e.includes("buildings[0].rotation") && e.includes("45"))).toBe(true);
+        expect(errors.some(e => e.includes("buildings[0].anchor") && e.includes("(9, 1)"))).toBe(true);
+    });
+
     it("错误消息里的坐标是 JSON 列/行，不是内部坐标", () => {
         const errors = parseErrors({
             ...baseLevel(),
             buildings: [{ pieceId: "Structure-001", anchor: { x: 9, y: 1 }, rotation: 0 }],
         });
         expect(errors.some(e => e.includes("(9, 1)"))).toBe(true);
-        expect(errors.some(e => e.includes("(6, 0)"))).toBe(false);
+        expect(errors.some(e => e.includes("(6, 1)"))).toBe(false);
     });
 });

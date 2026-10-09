@@ -3,6 +3,7 @@ import {
     type BuildingPlacement,
     type Coord,
     type LevelData,
+    type Piece,
     type PieceCatalog,
     type Rotation,
 } from "../common/GameTypes";
@@ -67,11 +68,22 @@ function collectUnknownKeys(
     }
 }
 
+/** 每条建筑通过阶段一校验后的结果，供阶段二棋盘范围与几何校验使用 */
+type Phase1Entry = Readonly<{
+    index: number;
+    pieceId?: string;
+    piece?: Piece;
+    anchor?: JsonCoord;
+    rotation?: Rotation;
+}>;
+
 /**
  * 解析并校验关卡 JSON，输出 GameTypes.LevelData。
  * 坐标在这一层从「左上原点列/行」换算为内部网格坐标，调用方拿到的都是内部坐标。
  *
- * 校验失败抛 LevelParseError，errors 一次性列出全部问题。
+ * 校验失败抛 LevelParseError，errors 一次性列出全部问题（不 fail-fast）：
+ * 阶段一做纯形状/枚举校验（无论顶层是否合法都收集），阶段二做依赖合法
+ * gridSize 与坐标换算的棋盘范围/几何校验，最后合并两阶段错误一次性抛出。
  */
 export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
     if (!isPlainObject(raw)) {
@@ -92,90 +104,110 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
     const buildingsOk = Array.isArray(raw.buildings);
     if (!buildingsOk) errors.push(`buildings: 必须是数组，实际是 ${formatValue(raw.buildings)}`);
 
-    // gridSize / thief 不合法时无法继续做棋盘范围判断，先把这些结构问题抛出去
-    if (!idOk || !gridSizeOk || !thiefOk || !buildingsOk) {
-        throw new LevelParseError(errors);
+    // ── 阶段一：纯形状/枚举校验，与 gridSize、坐标换算无关 ──
+    // 无论顶层字段是否合法都跑完并全部收集，让配关的人一次看全所有独立错误
+    const phase1: Phase1Entry[] = [];
+
+    if (buildingsOk) {
+        (raw.buildings as unknown[]).forEach((entry, index) => {
+            const at = `buildings[${index}]`;
+            if (!isPlainObject(entry)) {
+                errors.push(`${at}: 必须是对象`);
+                return;
+            }
+            collectUnknownKeys(entry, BUILDING_KEYS, at, errors);
+
+            let pieceId: string | undefined;
+            let piece: Piece | undefined;
+            if (typeof entry.pieceId !== "string") {
+                errors.push(`${at}.pieceId: 必须是字符串，实际是 ${formatValue(entry.pieceId)}`);
+            } else {
+                pieceId = entry.pieceId;
+                const found = catalog[pieceId];
+                if (!found) {
+                    errors.push(`${at}.pieceId: 棋子目录中不存在 "${pieceId}"`);
+                } else if (found.type !== PieceType.Building) {
+                    errors.push(`${at}.pieceId: "${pieceId}" 不是建筑棋子`);
+                } else {
+                    piece = found;
+                }
+            }
+
+            // anchor / rotation 的校验不依赖 pieceId，pieceId 非法时也要收集
+            let anchor: JsonCoord | undefined;
+            if (!isCoordShape(entry.anchor)) {
+                errors.push(`${at}.anchor: 必须是 { x: 整数, y: 整数 }，实际是 ${formatValue(entry.anchor)}`);
+            } else {
+                anchor = entry.anchor;
+            }
+
+            let rotation: Rotation | undefined;
+            if (!ROTATIONS.includes(entry.rotation)) {
+                errors.push(`${at}.rotation: 必须是 0/90/180/270，实际是 ${formatValue(entry.rotation)}`);
+            } else {
+                rotation = entry.rotation as Rotation;
+            }
+
+            phase1.push({ index, pieceId, piece, anchor, rotation });
+        });
     }
 
-    const id = raw.id as string;
-    const gridSize = raw.gridSize as number;
-    const thiefJson = raw.thief as JsonCoord;
-    const buildingsRaw = raw.buildings as unknown[];
-
-    // ── 棋盘范围（按 JSON 列/行判断） ──
-    const inJsonBoard = (c: JsonCoord): boolean =>
-        c.x >= 0 && c.x < gridSize && c.y >= 0 && c.y < gridSize;
-
-    if (!inJsonBoard(thiefJson)) {
-        errors.push(`thief: ${formatCoord(thiefJson)} 超出棋盘范围 0..${gridSize - 1}`);
-    }
-
-    // ── 逐个建筑做结构校验，记下通过的项供几何校验使用 ──
-    type UsableBuilding = Readonly<{
+    // ── 阶段二：依赖合法 gridSize / 坐标换算的检查（棋盘范围；几何校验后续任务补） ──
+    // toGridCoord 需要合法 gridSize，这类检查不能放进阶段一
+    const usable: Array<{
         index: number;
         pieceId: string;
         anchor: JsonCoord;
         rotation: Rotation;
         cells: Coord[];
-    }>;
-    const usable: UsableBuilding[] = [];
+    }> = [];
 
-    buildingsRaw.forEach((entry, index) => {
-        const at = `buildings[${index}]`;
-        if (!isPlainObject(entry)) {
-            errors.push(`${at}: 必须是对象`);
-            return;
-        }
-        collectUnknownKeys(entry, BUILDING_KEYS, at, errors);
+    if (gridSizeOk) {
+        const gridSize = raw.gridSize as number;
+        const inJsonBoard = (c: JsonCoord): boolean =>
+            c.x >= 0 && c.x < gridSize && c.y >= 0 && c.y < gridSize;
 
-        if (typeof entry.pieceId !== "string") {
-            errors.push(`${at}.pieceId: 必须是字符串，实际是 ${formatValue(entry.pieceId)}`);
-            return;
-        }
-        const pieceId = entry.pieceId as string;
-        const piece = catalog[pieceId];
-        if (!piece) {
-            errors.push(`${at}.pieceId: 棋子目录中不存在 "${pieceId}"`);
-            return;
-        }
-        if (piece.type !== PieceType.Building) {
-            errors.push(`${at}.pieceId: "${pieceId}" 不是建筑棋子`);
-            return;
+        if (thiefOk) {
+            const thiefJson = raw.thief as JsonCoord;
+            if (!inJsonBoard(thiefJson)) {
+                errors.push(`thief: ${formatCoord(thiefJson)} 超出棋盘范围 0..${gridSize - 1}`);
+            }
         }
 
-        if (!isCoordShape(entry.anchor)) {
-            errors.push(`${at}.anchor: 必须是 { x: 整数, y: 整数 }，实际是 ${formatValue(entry.anchor)}`);
-            return;
-        }
-        const anchor = entry.anchor as JsonCoord;
-        if (!inJsonBoard(anchor)) {
-            errors.push(`${at}.anchor: ${formatCoord(anchor)} 超出棋盘范围 0..${gridSize - 1}`);
-            return;
+        // anchor 棋盘范围只依赖 anchor 形状与 gridSize，与 pieceId 是否合法无关
+        for (const e of phase1) {
+            if (e.anchor !== undefined && !inJsonBoard(e.anchor)) {
+                errors.push(`buildings[${e.index}].anchor: ${formatCoord(e.anchor)} 超出棋盘范围 0..${gridSize - 1}`);
+            }
         }
 
-        if (!ROTATIONS.includes(entry.rotation)) {
-            errors.push(`${at}.rotation: 必须是 0/90/180/270，实际是 ${formatValue(entry.rotation)}`);
-            return;
+        // 结构完全合法且在棋盘内的建筑，记下 cells 供几何校验使用
+        for (const e of phase1) {
+            if (e.piece === undefined || e.pieceId === undefined || e.anchor === undefined || e.rotation === undefined) {
+                continue;
+            }
+            if (!inJsonBoard(e.anchor)) continue;
+            usable.push({
+                index: e.index,
+                pieceId: e.pieceId,
+                anchor: e.anchor,
+                rotation: e.rotation,
+                cells: toAbsoluteCells(pieceCells(e.piece, e.rotation), toGridCoord(e.anchor, gridSize)),
+            });
         }
-        const rotation = entry.rotation as Rotation;
 
-        usable.push({
-            index,
-            pieceId,
-            anchor,
-            rotation,
-            cells: toAbsoluteCells(pieceCells(piece, rotation), toGridCoord(anchor, gridSize)),
-        });
-    });
-
-    // ── 几何校验（Task 2 补全） ──
+        // ── 几何校验（Task 2 补全） ──
+    }
 
     if (errors.length > 0) throw new LevelParseError(errors);
 
+    // 能走到这里说明阶段一全部通过（否则上面已抛出），字段断言安全
+    const id = raw.id as string;
+    const gridSize = raw.gridSize as number;
     return {
         id,
         gridSize,
-        thief: toGridCoord(thiefJson, gridSize),
+        thief: toGridCoord(raw.thief as JsonCoord, gridSize),
         buildings: usable.map(
             (b): BuildingPlacement => ({
                 pieceId: b.pieceId,

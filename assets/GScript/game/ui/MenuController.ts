@@ -2,6 +2,8 @@ import { _decorator, Component, Node, UITransform, Vec3 } from 'cc';
 import { EViewLayer } from '../../core/ui/EViewLayer';
 import { G_VIEW_SIZE } from '../../core/ui/UIManager';
 import { GameController } from '../GameController';
+import { currentLevelId, selectLevel } from '../level/LevelSelection';
+import { loadLevelIndex } from '../LevelRepository';
 import { DesignFrames, loadDesignFrames, PocketPalette } from './DesignAssets';
 import { LevelsView } from './LevelsView';
 import { MenuBootView } from './MenuBootView';
@@ -29,6 +31,9 @@ export class MenuController extends Component {
     private settings: SettingsView | null = null;
     private profile: ProfileView | null = null;
 
+    /** 关卡目录（levels.json），顺序即关卡选择页的第几格 */
+    private levelIds: string[] = [];
+
     private bootElapsed = 0;
     private readonly bootDuration = 1.2;
     private booted = false;
@@ -43,6 +48,7 @@ export class MenuController extends Component {
         this.stage = createNode('MenuStage', this.node,
             { width: this.m.width, height: this.m.height }, new Vec3(0, 0, 0));
         this.frames = await loadDesignFrames();
+        this.levelIds = await loadLevelIndex();
 
         // 宽屏设备上 414×820 stage 两侧露出的区域用底色填满，避免黑边
         const backdrop = createNode('Backdrop', this.node,
@@ -75,8 +81,8 @@ export class MenuController extends Component {
             this.boot.node.destroy();
             this.boot = null;
         }
-        this.home = new MenuHomeView(this.stage, this.m, this.frames, 128, 8, {
-            onStart: () => { void gCtrl.ui.open(GameController); },
+        this.home = new MenuHomeView(this.stage, this.m, this.frames, 128, this.levelIds.length, {
+            onStart: () => this.openLevel(this.levelIds[0]),
             onLevels: () => this.openLevels(),
             onNavMenu: () => this.openMenu(),
             onNavSettings: () => this.openSettings(),
@@ -88,8 +94,8 @@ export class MenuController extends Component {
         // 回到主菜单：销毁其它子页
         this.clearSubPages();
         if (!this.home) {
-            this.home = new MenuHomeView(this.stage, this.m, this.frames, 128, 8, {
-                onStart: () => { void gCtrl.ui.open(GameController); },
+            this.home = new MenuHomeView(this.stage, this.m, this.frames, 128, this.levelIds.length, {
+                onStart: () => this.openLevel(this.levelIds[0]),
                 onLevels: () => this.openLevels(),
                 onNavMenu: () => this.openMenu(),
                 onNavSettings: () => this.openSettings(),
@@ -98,16 +104,27 @@ export class MenuController extends Component {
         }
     }
 
+    /** 打开指定关卡的对局；没有可用关卡时只报错，不跳转 */
+    private openLevel(levelId: string | undefined): void {
+        if (!levelId) {
+            console.error('[MenuController] 没有可用关卡');
+            return;
+        }
+        selectLevel(levelId);
+        void gCtrl.ui.open(GameController);
+    }
+
     private openLevels(): void {
         this.clearSubPages();
         if (this.home) {
             this.home.node.destroy();
             this.home = null;
         }
-        this.levels = new LevelsView(this.stage, this.m, this.frames, 128, 8, {
+        this.levels = new LevelsView(this.stage, this.m, this.frames, 128, this.levelIds.length, {
             onBack: () => this.openMenu(),
+            // 「继续巡逻」沿用当前选中的关卡，不改选择
             onContinue: () => { void gCtrl.ui.open(GameController); },
-            onPick: () => { void gCtrl.ui.open(GameController); },
+            onPick: (level: number) => this.openLevel(this.levelIds[level - 1]),
         });
     }
 

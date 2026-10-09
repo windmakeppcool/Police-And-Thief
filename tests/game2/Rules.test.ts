@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildOccupancy } from "../../assets/GScript/game2/rules/BoardOccupancy";
-import { canPlace, isInBoard } from "../../assets/GScript/game2/rules/PlacementValidator";
-import { isThiefCaptured, starRating, thiefExits } from "../../assets/GScript/game2/rules/WinCondition";
-import type { Coord } from "../../assets/GScript/game2/common/GameTypes";
+import { buildOccupancy } from "../../assets/GScript/game/rules/BoardOccupancy";
+import { canPlace, isInBoard } from "../../assets/GScript/game/rules/PlacementValidator";
+import { isThiefCaptured, starRating, thiefExits } from "../../assets/GScript/game/rules/WinCondition";
+import type { Coord } from "../../assets/GScript/game/common/GameTypes";
 
 const THIEF: Coord = { x: 1, y: 1 };
 const GRID = 6;

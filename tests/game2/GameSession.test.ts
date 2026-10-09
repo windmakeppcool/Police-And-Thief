@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { GameSession } from "../../assets/GScript/game2/common/GameSession";
-import { PieceType, type LevelData, type PieceCatalog } from "../../assets/GScript/game2/common/GameTypes";
-import { EXAMPLE_LEVEL, EXAMPLE_SOLUTION } from "../../assets/GScript/game2/level/LevelData";
-import { BoardPieces } from "../../assets/GScript/game2/piece/pieces";
+import { GameSession } from "../../assets/GScript/game/common/GameSession";
+import { PieceType, type LevelData, type PieceCatalog } from "../../assets/GScript/game/common/GameTypes";
+import { EXAMPLE_LEVEL, EXAMPLE_SOLUTION } from "../../assets/GScript/game/level/LevelData";
+import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
 import { TEST_CATALOG } from "./helpers/levelSolver";
 
 const EMPTY_LEVEL: LevelData = {

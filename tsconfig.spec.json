@@ -6,14 +6,20 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "types": ["vitest/globals", "node"],
+    "types": [
+      "vitest/globals",
+      "node"
+    ],
     "baseUrl": ".",
-    "lib": ["ES2020", "DOM"]
+    "lib": [
+      "ES2020",
+      "DOM"
+    ]
   },
   "include": [
-    "assets/GScript/game2/common/**/*.ts",
-    "assets/GScript/game2/rules/**/*.ts",
-    "assets/GScript/game2/level/**/*.ts",
+    "assets/GScript/game/common/**/*.ts",
+    "assets/GScript/game/rules/**/*.ts",
+    "assets/GScript/game/level/**/*.ts",
     "assets/GScript/core/platform/**/*.ts",
     "tests/**/*.ts"
   ]

@@ -9,7 +9,7 @@
   "scripts": {
     "test": "vitest run --config vitest.config.ts",
     "test:watch": "vitest --config vitest.config.ts",
-    "test:logic": "vitest run --config vitest.config.ts tests/game2 tests/core",
+    "test:logic": "vitest run --config vitest.config.ts tests/game tests/core",
     "typecheck:logic": "tsc --noEmit -p tsconfig.spec.json",
     "typecheck:cocos": "tsc --noEmit"
   },

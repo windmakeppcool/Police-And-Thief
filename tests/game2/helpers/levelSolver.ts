@@ -1,6 +1,6 @@
-import { pieceCells, toAbsoluteCells } from "../../../assets/GScript/game2/rules/PieceGeometry";
-import { PieceType, type Coord, type PieceCatalog, type Rotation } from "../../../assets/GScript/game2/common/GameTypes";
-import { isThiefCaptured } from "../../../assets/GScript/game2/rules/WinCondition";
+import { pieceCells, toAbsoluteCells } from "../../../assets/GScript/game/rules/PieceGeometry";
+import { PieceType, type Coord, type PieceCatalog, type Rotation } from "../../../assets/GScript/game/common/GameTypes";
+import { isThiefCaptured } from "../../../assets/GScript/game/rules/WinCondition";
 
 export const TEST_CATALOG: PieceCatalog = {
     'Police-A': {

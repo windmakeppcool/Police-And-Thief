@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { PieceType } from "../../assets/GScript/game2/common/GameTypes";
-import { nextRotation, pieceCells, rotateCell, rotateCells, stepsOf, toAbsoluteCells } from "../../assets/GScript/game2/rules/PieceGeometry";
+import { PieceType } from "../../assets/GScript/game/common/GameTypes";
+import { nextRotation, pieceCells, rotateCell, rotateCells, stepsOf, toAbsoluteCells } from "../../assets/GScript/game/rules/PieceGeometry";
 
 const ORIGIN = { x: 0, y: 0 };
 

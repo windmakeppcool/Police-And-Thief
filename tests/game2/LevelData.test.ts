@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { coordKey } from "../../assets/GScript/game2/rules/BoardOccupancy";
-import { pieceCells, toAbsoluteCells } from "../../assets/GScript/game2/rules/PieceGeometry";
-import { thiefExits } from "../../assets/GScript/game2/rules/WinCondition";
-import { BoardPieces } from "../../assets/GScript/game2/piece/pieces";
-import { EXAMPLE_LEVEL, EXAMPLE_SOLUTION } from "../../assets/GScript/game2/level/LevelData";
+import { coordKey } from "../../assets/GScript/game/rules/BoardOccupancy";
+import { pieceCells, toAbsoluteCells } from "../../assets/GScript/game/rules/PieceGeometry";
+import { thiefExits } from "../../assets/GScript/game/rules/WinCondition";
+import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
+import { EXAMPLE_LEVEL, EXAMPLE_SOLUTION } from "../../assets/GScript/game/level/LevelData";
 import { enumeratePlacements, minMovesToCapture } from "./helpers/levelSolver";
 
 describe("关卡数据", () => {

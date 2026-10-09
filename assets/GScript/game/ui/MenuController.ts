@@ -51,6 +51,9 @@ export class MenuController extends Component {
             size: { width: G_VIEW_SIZE.width, height: G_VIEW_SIZE.height },
             color: PocketPalette.cream,
         });
+        // 2D UI 的渲染先后由 siblingIndex 决定，z 坐标不生效；backdrop 比 stage
+        // 后创建，不挪回底层就会把整个 stage 盖住
+        backdrop.setSiblingIndex(0);
 
         this.boot = new MenuBootView(this.stage, this.m, this.frames);
         this.boot.setProgress(0);

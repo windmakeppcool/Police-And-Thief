@@ -1,4 +1,4 @@
-import { Label, Node, UITransform, Vec3 } from 'cc';
+import { Color, Label, Node, UITransform, Vec3 } from 'cc';
 import { DesignFrames, PocketPalette } from './DesignAssets';
 import { box, boxCenter, boxSize, labelInBox, type MenuMetrics } from './MenuWidgets';
 import { addSprite, createNode, setSize } from './UIFactory';

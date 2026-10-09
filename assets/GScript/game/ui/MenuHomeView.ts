@@ -1,4 +1,4 @@
-import { Node } from 'cc';
+import { Color, Node } from 'cc';
 import { DesignFrames, PocketPalette } from './DesignAssets';
 import {
     box, boxSize, buildStarCounter, labelInBox, localBox, localIcon, localLabel, makeButton, type MenuMetrics,

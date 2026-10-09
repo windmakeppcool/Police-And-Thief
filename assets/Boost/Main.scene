@@ -296,9 +296,9 @@
     "_dstBlendFactor": 4,
     "_color": {
       "__type__": "cc.Color",
-      "r": 207,
-      "g": 251,
-      "b": 154,
+      "r": 220,
+      "g": 239,
+      "b": 228,
       "a": 255
     },
     "_spriteFrame": {
@@ -431,7 +431,9 @@
     "canvas2d": {
       "__id__": 10
     },
-    "toReleaseNode": null,
+    "toReleaseNode": {
+      "__id__": 5
+    },
     "_id": "ddmpe4O41DlrUyilAtorwe"
   },
   {

@@ -3,7 +3,7 @@ import { DesignFrames, Palette, PocketPalette } from './DesignAssets';
 import { GameLayout } from './Layout';
 import { addSprite, createLabel, createNode } from './UIFactory';
 
-/** 背景天空 + 远景天际线 + 棋盘与托盘之间的街景装饰带 */
+/** 背景（对应 pocket-patrol.css `.game-screen { background: #eff3e5; }`）+ 远景天际线 + 棋盘与托盘之间的街景装饰带 */
 export class GameSceneView {
     readonly node: Node;
     private readonly town: Node;
@@ -13,8 +13,9 @@ export class GameSceneView {
         const { width, height } = layout;
         this.node = createNode('SceneDecor', parent, { width, height });
 
+        // 底色：薄荷米，与设计稿游戏界面的 #eff3e5 近似（取调色板 mint 最接近的标准色）
         const sky = createNode('Sky', this.node, { width, height });
-        addSprite(sky, frames.solid, { size: { width, height }, color: Palette.sky });
+        addSprite(sky, frames.solid, { size: { width, height }, color: PocketPalette.mint });
 
         const skylineHeight = Math.round(width * 132 / 750);
         const skyline = createNode('Skyline', this.node, { width, height: skylineHeight },

@@ -1,4 +1,4 @@
-import { Color, Node } from 'cc';
+import { Node } from 'cc';
 import { DesignFrames, PocketPalette } from './DesignAssets';
 import {
     box, boxSize, buildStarCounter, labelInBox, localBox, localIcon, localLabel, makeButton, type MenuMetrics,
@@ -27,9 +27,9 @@ export class MenuHomeView {
     ) {
         this.node = box('HomePage', parent, m, 0, 0, 414, 820);
 
-        // 背景：上绿下奶油，近似设计稿纵向渐变
+        // 背景：上绿下奶油，近似设计稿纵向渐变 linear-gradient(180deg, #e4f0e5 → #e3efe2 → var(--cream))
         const top = box('HomeBgTop', this.node, m, 0, 0, 414, 480);
-        addSprite(top, frames.solid, { size: boxSize(m, 414, 480), color: new Color(227, 239, 226, 255) });
+        addSprite(top, frames.solid, { size: boxSize(m, 414, 480), color: PocketPalette.mint });
         const bottom = box('HomeBgBottom', this.node, m, 0, 480, 414, 340);
         addSprite(bottom, frames.solid, { size: boxSize(m, 414, 340), color: PocketPalette.cream });
 

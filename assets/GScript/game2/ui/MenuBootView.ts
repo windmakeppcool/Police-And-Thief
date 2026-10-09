@@ -1,4 +1,4 @@
-import { Color, Label, Node, UITransform, Vec3 } from 'cc';
+import { Label, Node, UITransform, Vec3 } from 'cc';
 import { DesignFrames, PocketPalette } from './DesignAssets';
 import { box, boxCenter, boxSize, labelInBox, type MenuMetrics } from './MenuWidgets';
 import { addSprite, createNode, setSize } from './UIFactory';
@@ -12,9 +12,9 @@ export class MenuBootView {
     private readonly trackX: number;
 
     constructor(parent: Node, private readonly m: MenuMetrics, private readonly frames: DesignFrames) {
-        // 414×820 整块背景
+        // 414×820 整块背景：薄荷色，与设计稿 boot/menu 底色一致
         this.node = box('BootPage', parent, m, 0, 0, 414, 820);
-        addSprite(this.node, frames.solid, { size: boxSize(m, 414, 820), color: new Color(226, 239, 223, 255) });
+        addSprite(this.node, frames.solid, { size: boxSize(m, 414, 820), color: PocketPalette.mint });
 
         // 警徽底板（素材底板）+ 叠加 badge 图标
         const mark = box('BootMark', this.node, m, (414 - 132) / 2, 189, 132, 132);

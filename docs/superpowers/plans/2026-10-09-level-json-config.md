@@ -1259,44 +1259,67 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ### Task 8: 清理旧关卡数据、收编测试、更新文档
 
 **Files:**
+- Create: `tests/game2/helpers/levelFixtures.ts`
+- Modify: `tests/game2/LevelData.test.ts`
+- Modify: `tests/game2/GameSession.test.ts`
+- Modify: `tests/game2/LevelParser.test.ts`（仅测试卫生）
+- Modify: `tests/game2/LevelJson.test.ts`（仅断言消息）
 - Delete: `assets/GScript/game/level/LevelData.ts`
 - Delete: `assets/GScript/game/level/LevelData.ts.meta`
-- Modify: `tests/game2/LevelData.test.ts`
 - Modify: `CLAUDE.md`
 
 **Interfaces:**
 - Consumes: `parseLevel`（Task 1）、`assets/Game/levels/level_01.json`（Task 4）
-- Produces: 仓库内不再有硬编码关卡数据；`LevelData.test.ts` 变成 level_01 的难度回归
+- Produces:
+  - `function loadLevelFile(levelId: string): LevelData`（`tests/game2/helpers/levelFixtures.ts`）
+  - `const LEVEL_01_SOLUTION: ReadonlyArray<{ pieceId: string; anchor: Coord; rotation: Rotation }>`
+  - 仓库内不再有硬编码关卡数据
 
-- [ ] **Step 1: 改写 `LevelData.test.ts` 读 JSON**
+> **为什么要有 `levelFixtures.ts`**：`LevelData.test.ts` 与 `GameSession.test.ts` 都要用 level_01 的关卡数据和参考解。参考解是 5 行数据，两处各写一份必然漂移，所以提成共享夹具。
+
+- [ ] **Step 1: 新建共享测试夹具**
+
+创建 `tests/game2/helpers/levelFixtures.ts`：
+
+```ts
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import type { Coord, LevelData, Rotation } from "../../../assets/GScript/game/common/GameTypes";
+import { parseLevel } from "../../../assets/GScript/game/level/LevelParser";
+import { BoardPieces } from "../../../assets/GScript/game/piece/pieces";
+
+/** assets/Game/levels 在磁盘上的绝对路径 */
+const LEVELS_DIR = fileURLToPath(new URL("../../../assets/Game/levels/", import.meta.url));
+
+/** 读关卡 JSON 并解析为内部 LevelData（坐标已从左上原点列/行换算） */
+export function loadLevelFile(levelId: string): LevelData {
+    return parseLevel(JSON.parse(readFileSync(join(LEVELS_DIR, `${levelId}.json`), "utf8")), BoardPieces);
+}
+
+/** level_01 的参考解：3 步围住小偷（三星）。坐标是内部网格坐标，描述求解落点而非关卡 JSON */
+export const LEVEL_01_SOLUTION: ReadonlyArray<{ pieceId: string; anchor: Coord; rotation: Rotation }> = [
+    { pieceId: "PoliceUI-002", anchor: { x: 1, y: -1 }, rotation: 0 },
+    { pieceId: "PoliceUI-004", anchor: { x: 2, y: 2 }, rotation: 180 },
+    { pieceId: "PoliceUI-006", anchor: { x: -1, y: 1 }, rotation: 180 },
+];
+```
+
+- [ ] **Step 2: 改写 `LevelData.test.ts` 读 JSON**
 
 把 `tests/game2/LevelData.test.ts` 整体替换为：
 
 ```ts
-import { readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { type Coord, type Rotation } from "../../assets/GScript/game/common/GameTypes";
 import { GameSession } from "../../assets/GScript/game/common/GameSession";
 import { coordKey } from "../../assets/GScript/game/rules/BoardOccupancy";
 import { pieceCells, toAbsoluteCells } from "../../assets/GScript/game/rules/PieceGeometry";
 import { thiefExits } from "../../assets/GScript/game/rules/WinCondition";
 import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
-import { parseLevel } from "../../assets/GScript/game/level/LevelParser";
 import { enumeratePlacements, minMovesToCapture } from "./helpers/levelSolver";
+import { LEVEL_01_SOLUTION, loadLevelFile } from "./helpers/levelFixtures";
 
-const LEVEL_PATH = fileURLToPath(
-    new URL("../../assets/Game/levels/level_01.json", import.meta.url),
-);
-
-/** 参考解：3 步围住小偷（三星）。坐标是内部网格坐标，描述的是求解落点而非关卡 JSON */
-const LEVEL_01_SOLUTION: ReadonlyArray<{ pieceId: string; anchor: Coord; rotation: Rotation }> = [
-    { pieceId: "PoliceUI-002", anchor: { x: 1, y: -1 }, rotation: 0 },
-    { pieceId: "PoliceUI-004", anchor: { x: 2, y: 2 }, rotation: 180 },
-    { pieceId: "PoliceUI-006", anchor: { x: -1, y: 1 }, rotation: 180 },
-];
-
-const level = parseLevel(JSON.parse(readFileSync(LEVEL_PATH, "utf8")), BoardPieces);
+const level = loadLevelFile("level_01");
 
 describe("关卡数据 level_01", () => {
     const { gridSize, thief, buildings } = level;
@@ -1361,12 +1384,64 @@ describe("关卡数据 level_01", () => {
 
 `LEVEL_01_SOLUTION` 的坐标是**内部网格坐标**（与原 `EXAMPLE_SOLUTION` 相同），因为它描述的是求解落点而不是关卡 JSON。
 
-- [ ] **Step 2: 跑测试确认通过**
+- [ ] **Step 3: 迁移 `GameSession.test.ts`**
 
-Run: `npx vitest run tests/game2/LevelData.test.ts`
-Expected: PASS（「最少三步」的断言必须仍然成立，这是 level_01 迁移无损的证据）
+`tests/game2/GameSession.test.ts` 也 import 了 `EXAMPLE_LEVEL` / `EXAMPLE_SOLUTION`（共 8 处引用），必须一并迁移，否则删掉 `LevelData.ts` 后测试编译失败。
 
-- [ ] **Step 3: 删除 `LevelData.ts`**
+把它的 import：
+
+```ts
+import { EXAMPLE_LEVEL, EXAMPLE_SOLUTION } from "../../assets/GScript/game/level/LevelData";
+```
+
+替换为：
+
+```ts
+import { LEVEL_01_SOLUTION, loadLevelFile } from "./helpers/levelFixtures";
+```
+
+并在该文件的 import 区之后加上：
+
+```ts
+const LEVEL_01 = loadLevelFile("level_01");
+```
+
+然后把文件内全部 `EXAMPLE_LEVEL` 替换为 `LEVEL_01`、全部 `EXAMPLE_SOLUTION` 替换为 `LEVEL_01_SOLUTION`（共 8 处）。**不要改任何断言的数值**——`expect(buildingCells.length).toBe(14)` 等断言在迁移后必须原样通过，这是迁移无损的证据。
+
+- [ ] **Step 4: 测试卫生（两处小修）**
+
+**4a.** `tests/game2/LevelParser.test.ts` 的「重复 id 报错」用例：`throw new Error("期望抛出 LevelParseError")` 会被自己的 `catch` 吞掉，若 `parseLevelIndex` 未抛错会以 `TypeError` 失败而非清晰信息。改成先断言类型再取 `errors`：
+
+```ts
+    it("重复 id 报错", () => {
+        try {
+            parseLevelIndex(["level_01", "level_01"]);
+            throw new Error("期望抛出 LevelParseError");
+        } catch (e) {
+            expect(e).toBeInstanceOf(LevelParseError);
+            expect((e as LevelParseError).errors.some(msg => msg.includes("重复"))).toBe(true);
+        }
+    });
+```
+
+**4b.** `tests/game2/LevelJson.test.ts` 的「开局未被围死」断言缺失败消息，看不出是哪一关出问题。补上关卡 id：
+
+```ts
+            expect(
+                isThiefCaptured(level.gridSize, level.thief, occupancy),
+                `${levelId} 开局不应已被围死`,
+            ).toBe(false);
+```
+
+- [ ] **Step 5: 跑测试确认通过**
+
+Run: `npx vitest run tests/game2/LevelData.test.ts tests/game2/GameSession.test.ts`
+Expected: PASS（`LevelData.test.ts` 的「最少三步」与 `GameSession.test.ts` 的 `toBe(14)` / 三步通关断言必须原样成立）
+
+Run: `npm test`
+Expected: 全绿
+
+- [ ] **Step 6: 删除 `LevelData.ts`**
 
 先确认没有别处引用：
 
@@ -1379,7 +1454,7 @@ Expected: 无输出
 git rm assets/GScript/game/level/LevelData.ts assets/GScript/game/level/LevelData.ts.meta
 ```
 
-- [ ] **Step 4: 全量验证**
+- [ ] **Step 7: 全量验证**
 
 Run: `npm test && npm run typecheck:logic`
 Expected: 全绿
@@ -1387,7 +1462,7 @@ Expected: 全绿
 Run: `npm run typecheck:cocos`
 Expected: 无错误
 
-- [ ] **Step 5: 更新 `CLAUDE.md`**
+- [ ] **Step 8: 更新 `CLAUDE.md`**
 
 在「Cocos Asset Bundle 划分」里把 `assets/Game` 那条：
 
@@ -1444,14 +1519,16 @@ Expected: 无错误
 - 调整关卡 JSON 后跑 `npm test`：`tests/game2/LevelJson.test.ts` 会扫盘校验 `levels.json` 与关卡文件一一对应、每关结构合法、开局不会被围死且四步内可解；`tests/game2/LevelData.test.ts` 另外断言 level_01 最少三步。
 ```
 
-- [ ] **Step 6: 提交**
+- [ ] **Step 9: 提交**
 
 ```bash
-git add -A
+git add tests/game2/helpers/levelFixtures.ts tests/game2/LevelData.test.ts tests/game2/GameSession.test.ts tests/game2/LevelParser.test.ts tests/game2/LevelJson.test.ts CLAUDE.md
+git add -u assets/GScript/game/level
 git commit -m "refactor(level): 关卡数据改由 JSON 配置，移除硬编码 LevelData
 
-EXAMPLE_LEVEL 迁入 assets/Game/levels/level_01.json，参考解移入测试。
-更新 CLAUDE.md 说明新的关卡配置方式与坐标约定。
+EXAMPLE_LEVEL 迁入 assets/Game/levels/level_01.json；参考解与关卡读取
+提到 tests/game2/helpers/levelFixtures.ts 供 LevelData / GameSession 测试共用。
+顺带修掉两处测试卫生问题。更新 CLAUDE.md 说明新的关卡配置方式与坐标约定。
 
 Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 ```

@@ -56,7 +56,8 @@ export class LevelsView {
 
         // ── 底部继续按钮 ──
         const cont = makeButton(this.node, m, 'ContinueButton', 24, 740, 366, 58,
-            { normal: frames.btnPrimary, pressed: frames.btnPrimaryPressed, color: PocketPalette.orange, sliced: true });
+            // btnPrimary 素材本身已是设计稿的珊瑚橙，再 tint 会二次染色偏红，故不指定 color
+            { normal: frames.btnPrimary, pressed: frames.btnPrimaryPressed, sliced: true });
         localLabel(cont.node, m, 'ContinueText', '继续巡逻', 18, 366, 58,
             { x: 0, y: 0, w: 300, h: 58 }, { color: PocketPalette.whiteish, bold: true });
         localIcon(cont.node, m, 'ContinueArrow', frames.arrowWhite, 366, 58, 332, 29, 20);

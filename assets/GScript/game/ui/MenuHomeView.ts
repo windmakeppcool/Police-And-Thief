@@ -71,7 +71,8 @@ export class MenuHomeView {
 
         // ── 操作区：开始 + 关卡选择 ──
         const start = makeButton(this.node, m, 'StartButton', 24, 534, 366, 62,
-            { normal: frames.btnPrimary, pressed: frames.btnPrimaryPressed, color: PocketPalette.orange, sliced: true });
+            // btnPrimary 素材本身已是设计稿的珊瑚橙 #F78462，再 tint 会二次染色偏红，故不指定 color
+            { normal: frames.btnPrimary, pressed: frames.btnPrimaryPressed, sliced: true });
         localIcon(start.node, m, 'StartPlay', frames.play, 366, 62, 42, 31, 23, PocketPalette.whiteish);
         localLabel(start.node, m, 'StartText', '开始游戏', 21, 366, 62,
             { x: 60, y: 0, w: 220, h: 62 },

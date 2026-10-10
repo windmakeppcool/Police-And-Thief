@@ -67,5 +67,6 @@ describe("关卡数据 level_01", () => {
         expect(session.moveCount).toBe(LEVEL_01_SOLUTION.length);
         expect(LEVEL_01_SOLUTION.length).toBe(6);
         expect(session.captured).toBe(true);
+        expect(session.won).toBe(true);
     });
 });

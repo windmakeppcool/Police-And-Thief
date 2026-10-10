@@ -8,7 +8,8 @@ import { pieceCells, toAbsoluteCells } from "../../assets/GScript/game/rules/Pie
 import { isThiefCaptured } from "../../assets/GScript/game/rules/WinCondition";
 import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
 import { parseLevel, parseLevelIndex } from "../../assets/GScript/game/level/LevelParser";
-import { canCaptureUsingAllPieces, enumeratePlacements } from "./helpers/levelSolver";
+import { GameSession } from "../../assets/GScript/game/common/GameSession";
+import { findFullSquadSolution, enumeratePlacements } from "./helpers/levelSolver";
 
 const LEVELS_DIR = fileURLToPath(new URL("../../assets/Game/levels/", import.meta.url));
 
@@ -59,10 +60,18 @@ describe("关卡 JSON 资料", () => {
 
             // 建筑是固定路障，不能算作玩家可落的子，所以只用警察棋子求解
             const solverPieces = enumeratePlacements(POLICE_ONLY, level.gridSize, level.thief);
-            expect(
-                canCaptureUsingAllPieces(solverPieces, level.gridSize, level.thief, blocked),
-                `${levelId} 应当能用满全部警察棋子围住小偷`,
-            ).toBe(true);
+            const solution = findFullSquadSolution(solverPieces, level.gridSize, level.thief, blocked);
+            expect(solution, `${levelId} 应当存在「用满六枚警察棋子」的围捕解`).not.toBeNull();
+
+            // 把解交给 GameSession 落一遍，确保求解器的模型与真实规则一致
+            const session = new GameSession(level, BoardPieces);
+            for (const step of solution!) {
+                expect(
+                    session.place(step.pieceId, step.anchor, step.rotation),
+                    `${levelId}: ${step.pieceId} 落在 (${step.anchor.x}, ${step.anchor.y}) 应当合法`,
+                ).toBe(true);
+            }
+            expect(session.won, `${levelId} 摆满六枚围住小偷后应当获胜`).toBe(true);
         }
     });
 });

@@ -161,9 +161,9 @@ export class GameOverlayView {
         return this.startCard.active;
     }
 
-    /** 通关固定得 1 颗星，星数不再是变量，只需展示步数 */
-    showWin(moves: number): void {
-        this.winText.string = `只用 ${moves} 队警力就封锁了小镇，\n小偷插翅难逃！`;
+    /** 获胜 = 小偷被围住 + 六枚警力全部就位，两者都恒定，无需展示变量 */
+    showWin(): void {
+        this.winText.string = '六队警力全部就位，\n小镇被封锁了！';
         this.winCard.active = true;
         this.updateDim();
     }

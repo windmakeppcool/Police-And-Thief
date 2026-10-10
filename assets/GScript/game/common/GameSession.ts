@@ -179,8 +179,19 @@ export class GameSession {
     }
 
     /** 小偷是否已被围住 */
+    /** 小偷去路是否已被全部堵住 */
     get captured(): boolean {
         return isThiefCaptured(this.gridSize, this.level.thief, this.occupancy());
+    }
+
+    /** 六枚警察棋子是否都已上场 */
+    get deployed(): boolean {
+        return this.policeIds.length > 0 && this.policeIds.every(id => this.placements.has(id));
+    }
+
+    /** 获胜：小偷被围住，且六枚警力全部就位 */
+    get won(): boolean {
+        return this.captured && this.deployed;
     }
 
     private requirePiece(pieceId: string): PieceCatalog[string] {

@@ -198,7 +198,7 @@ export class GameController extends Component {
     /** 延迟弹出胜利卡片；重开时需要能取消，避免旧卡片盖在新一局上 */
     private readonly showWinDelayed = (): void => {
         if (!this.over) return;
-        this.overlays.showWin(this.session.moveCount);
+        this.overlays.showWin();
     };
 
     private placePiece(pieceId: string, anchor: Coord): boolean {
@@ -221,7 +221,8 @@ export class GameController extends Component {
     }
 
     private checkWin(): void {
-        if (!this.session.captured) return;
+        // 获胜要同时满足：小偷被围住 + 六枚警力全部就位
+        if (!this.session.won) return;
         this.over = true;
         this.setPiecesInteractable(false);
         this.boardGrid.markThiefCaught();

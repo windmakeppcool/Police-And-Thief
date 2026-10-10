@@ -136,6 +136,24 @@ describe("GameSession 关卡规则", () => {
 
         expect(session.moveCount).toBe(6);
         expect(session.captured).toBe(true);
+        expect(session.deployed).toBe(true);
+        expect(session.won).toBe(true);
+    });
+
+    it("没摆满六枚之前，即便已围住小偷也不算赢", () => {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        // 参考解的前两枚就把小偷四条去路全堵上了
+        expect(session.place("PoliceUI-002", { x: 2, y: 2 }, 180)).toBe(true);
+        expect(session.place("PoliceUI-001", { x: 0, y: 0 }, 0)).toBe(true);
+        expect(session.captured).toBe(true);
+        expect(session.deployed).toBe(false);
+        expect(session.won).toBe(false);
+
+        for (const step of LEVEL_01_SOLUTION.slice(2)) {
+            expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
+        }
+        expect(session.deployed).toBe(true);
+        expect(session.won).toBe(true);
     });
 
     it("按 UI 的操作方式（托盘预转向 + 落子）也能用满六个棋子通关", () => {
@@ -149,7 +167,7 @@ describe("GameSession 关卡规则", () => {
         }
 
         expect(session.moveCount).toBe(6);
-        expect(session.captured).toBe(true);
+        expect(session.won).toBe(true);
     });
 
     it("托盘预转向不影响已上场的棋子，也只对警察生效", () => {

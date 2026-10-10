@@ -68,7 +68,7 @@ npm run typecheck:cocos
 - `game/rules/BoardOccupancy.ts`：`buildOccupancy` 与 `"x,y"` 格子键，占用表为 `格子键 -> 棋子 id`。
 - `game/rules/PlacementValidator.ts`：放置合法性（棋盘内、不踩小偷、不重叠、支持忽略自身占用）。
 - `game/rules/WinCondition.ts`：小偷去路枚举、是否被围住。
-- `game/common/GameSession.ts`：一局游戏的状态机，负责建筑占用、放置/移动/旋转、撤销历史、步数与胜负；表现层所有合法性判断都交给它。
+- `game/common/GameSession.ts`：一局游戏的状态机，负责建筑占用、放置/移动/旋转/撤下、撤销历史、在场数与胜负；表现层所有合法性判断都交给它。
 - `game/level/LevelParser.ts`：关卡 JSON 解析与校验。JSON 用左上原点列/行坐标（0..gridSize-1），在这里一次换算为内部网格坐标；严格模式拦截未知字段，校验错误一次性收集并按 JSON 坐标报告。
 - `game/level/LevelSelection.ts`：菜单与对局之间传递「当前关卡 id」的模块级状态（`UIManager.open` 不支持传参）。
 
@@ -77,7 +77,7 @@ npm run typecheck:cocos
 - `game/GameController.ts`：入口组件，挂在 `EViewLayer.Anim`。装配设计稿 UI → 加载棋盘预制体 → 按关卡数据摆放建筑 → 把 6 个警察棋子放进托盘槽位，并驱动开始/撤销/重开/胜利流程与定时动画（警灯、警车顶灯、小偷东张西望）。
 - `game/LevelRepository.ts`：从 `GameBN` 加载 `levels/levels` 与 `levels/<id>` 的 `JsonAsset` 并交给 `LevelParser`。放在 `game/` 根目录而非 `game/level/`，因为后者被 `tsconfig.spec.json` 覆盖、不能 `import 'cc'`。
 - `game/piece/BoardGrid.ts`：绘制棋盘格（四角用斑马线素材）、小偷节点与落点预览（合法/非法两套贴图）。
-- `game/piece/DraggablePiece.ts`：警察棋子交互。托盘 → 棋盘拖拽（超过 8px 才算拖拽）、落点预览、点击原地转向、非法落点弹回并抖动；命中判定用“格子方块并集”，不依赖 `PolygonCollider2D`。
+- `game/piece/DraggablePiece.ts`：警察棋子交互。托盘 → 棋盘拖拽（超过 8px 才算拖拽）、落点预览、点击原地转向、拖出棋盘收回托盘、非法落点弹回并抖动；命中判定用“格子方块并集”，不依赖 `PolygonCollider2D`。
 - `game/piece/StructurePieces.ts`：建筑障碍，只按关卡数据摆放，不参与交互。
 - `game/piece/pieceLayout.ts`：按 `cells` + `origin` 摆放预制体子节点，保证视觉与 `PieceGeometry` 的占位计算一致（不使用 `node.angle`，避免与逻辑旋转方向不一致）。
 - `game/ui/*`：设计稿素材加载（`DesignAssets.ts`）、布局（`Layout.ts`）以及 HUD、托盘、弹层、菜单、结算、设置、个人中心等界面。节点/精灵/文本构造工具位于 `core/ui/UIFactory.ts`。
@@ -119,11 +119,12 @@ UI 视觉基准是 `design/pocket-patrol-design.md`（“口袋巡逻队”薄�
 - 6×6 棋盘，坐标范围 -3..2，小偷固定在关卡配置的格子；建筑由关卡数据自动摆放，玩家不能移动。
 - 关卡从 `assets/Game/levels/level_XX.json` 读取：可配置小偷位置与建筑摆放（`anchor` + `rotation`）。JSON 坐标是左上原点列/行（x 向右、y 向下），运行时换算为内部坐标；加载时只做静态校验，非法关卡拒入并打印全部错误。可解性由 `tests/game2/LevelJson.test.ts` 扫盘断言。
 - 玩家从托盘拖出警察棋子放到棋盘；点击棋子会顺时针转向 90°：已上场时绕 origin cell 原地转向（需要落点合法），还在托盘时则先调好朝向（`GameSession.rotateInTray`），这样贴边的落点也能直接拖上去。
-- 只有棋子“首次上岗”才计入步数；把已上场的棋子挪到别的格子不计步。
+- **已上场的棋子拖出棋盘即可撤回托盘**（`GameSession.remove`），撤下保留当前朝向，方便换个位置再摆。这样玩家不会被自己堵死。
+- HUD 的「已部署 N / 总数」就是当前在场棋子数（`GameSession.moveCount`）。已上场的棋子挪到别的格子不改变它，撤下则减一。
 - **获胜 = 小偷被围住 且 6 枚警察棋子全部上场**（`GameSession.won`）。两者缺一不可：只围住不算赢，摆满了没围住也不算。
 - **关卡可解性要求「用满全部警察棋子」**：一关只算合格，当且仅当存在一种放法把 6 枚警察棋子全部合法放到棋盘上、并且围住小偷。这保证不会出现「某枚棋子被建筑堵得完全放不下去」的坏关卡。
 - 通关固定得 1 颗星，不做多档评级（星数等于已过关卡数）。
-- 撤销可回退上一次放置/移动（首次上岗被撤销时步数回退），重开把所有警察恢复到托盘初始状态。
+- 撤销可回退上一次放置/移动/撤下（撤下的棋子原样放回），重开把所有警察恢复到托盘初始状态。
 
 ## 平台适配
 

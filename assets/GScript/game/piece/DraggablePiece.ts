@@ -1,6 +1,7 @@
 import { _decorator, Component, EventTouch, input, Input, Node, Sprite, SpriteFrame, tween, UITransform, Vec3 } from 'cc';
 import { GameSession } from '../common/GameSession';
 import type { Coord, Piece, Rotation } from '../common/GameTypes';
+import { isInBoard } from '../rules/PlacementValidator';
 import { BoardGrid } from './BoardGrid';
 import { applyPieceLayout, pieceCenterOffset } from './pieceLayout';
 const { ccclass } = _decorator;
@@ -10,6 +11,8 @@ export type PieceCallbacks = {
     place: (pieceId: string, anchor: Coord) => boolean;
     /** 点击已放置棋子请求旋转，返回是否成功 */
     rotate: (pieceId: string) => boolean;
+    /** 请求把已上场的棋子撤回托盘，返回是否成功 */
+    remove: (pieceId: string) => boolean;
 };
 
 export type PieceInitOptions = {
@@ -194,8 +197,17 @@ export class DraggablePiece extends Component {
     }
 
     private handleDrop(): void {
-        const anchor = this.pendingAnchor ?? this.currentAnchor();
         this.boardGrid?.clearGhost();
+        // 拖出棋盘 = 收回托盘：已上场的棋子随时可以撤下，玩家不会被自己堵死
+        if (this.onBoard && this.isOffBoard()) {
+            if (this.callbacks?.remove(this.pieceId)) {
+                this.onBoard = false;
+                this.anchor = null;
+                this.moveToTray();
+                return;
+            }
+        }
+        const anchor = this.pendingAnchor;
         if (anchor && this.pendingValid && this.callbacks?.place(this.pieceId, anchor)) {
             this.onBoard = true;
             this.anchor = anchor;
@@ -206,6 +218,12 @@ export class DraggablePiece extends Component {
         }
         this.revertDrag();
         this.playShake();
+    }
+
+    /** 当前位置是否已离开棋盘（拖向托盘途中、或落在棋盘外） */
+    private isOffBoard(): boolean {
+        const anchor = this.currentAnchor();
+        return !anchor || !this.session || !isInBoard(this.session.gridSize, anchor);
     }
 
     private endDrag(): void {
@@ -243,6 +261,13 @@ export class DraggablePiece extends Component {
     private updateGhost(): void {
         const anchor = this.currentAnchor();
         if (!anchor || !this.boardGrid || !this.session) return;
+        // 拖出棋盘不算落点：清掉预览，暗示「这里不是放子的地方」
+        if (!isInBoard(this.session.gridSize, anchor)) {
+            this.boardGrid.clearGhost();
+            this.pendingAnchor = null;
+            this.pendingValid = false;
+            return;
+        }
         const cells = this.session.cellsAt(this.pieceId, anchor, this.rotation);
         const valid = this.session.canPlaceAt(this.pieceId, anchor, this.rotation);
         this.boardGrid.showGhost(cells, valid);

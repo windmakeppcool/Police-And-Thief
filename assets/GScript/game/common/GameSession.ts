@@ -25,7 +25,6 @@ export class GameSession {
     private readonly placements = new Map<string, PiecePlacement>();
     private readonly rotations = new Map<string, Rotation>();
     private readonly history: HistoryEntry[] = [];
-    private moves = 0;
 
     constructor(
         private readonly level: LevelData,
@@ -100,7 +99,7 @@ export class GameSession {
         });
     }
 
-    /** 落子：成功返回 true。只有从托盘首次上岗才计入场步数 */
+    /** 落子：成功返回 true。已上场的棋子挪位不增加在场数 */
     place(pieceId: string, anchor: Coord, rotation?: Rotation): boolean {
         if (!this.canPlaceAt(pieceId, anchor, rotation)) return false;
         const prev = this.placements.get(pieceId) ?? null;
@@ -111,7 +110,18 @@ export class GameSession {
         }
         this.placements.set(pieceId, { anchor, rotation: placedRotation });
         this.rotations.set(pieceId, placedRotation);
-        if (!prev) this.moves++;
+        this.history.push({ pieceId, prev });
+        return true;
+    }
+
+    /**
+     * 把已上场的棋子撤回托盘，返回是否执行成功。
+     * 保留当前朝向——玩家多半要换个位置再摆，不必重新转向；撤销可原样放回。
+     */
+    remove(pieceId: string): boolean {
+        const prev = this.placements.get(pieceId) ?? null;
+        if (!prev) return false;
+        this.placements.delete(pieceId);
         this.history.push({ pieceId, prev });
         return true;
     }
@@ -155,7 +165,6 @@ export class GameSession {
             // 退回托盘：旋转一并恢复为棋子初始朝向
             this.placements.delete(last.pieceId);
             this.rotations.set(last.pieceId, this.requirePiece(last.pieceId).rotation);
-            this.moves = Math.max(0, this.moves - 1);
         }
         return true;
     }
@@ -164,14 +173,14 @@ export class GameSession {
     reset(): void {
         this.placements.clear();
         this.history.length = 0;
-        this.moves = 0;
         for (const piece of Object.values(this.catalog)) {
             this.rotations.set(piece.id, piece.rotation);
         }
     }
 
+    /** 当前在场警力数（HUD 显示「已部署 N / 总数」） */
     get moveCount(): number {
-        return this.moves;
+        return this.placements.size;
     }
 
     get undoCount(): number {

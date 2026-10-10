@@ -196,3 +196,62 @@ describe("GameSession 关卡规则", () => {
         expect(withBuilding.rotateInTray('Building-A')).toBe(false);
     });
 });
+
+describe("GameSession 撤下棋子", () => {
+    it("撤下已上场的棋子：回到托盘，在场数下降", () => {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        expect(session.place('PoliceUI-003', { x: -2, y: 1 })).toBe(true);
+        expect(session.moveCount).toBe(1);
+        expect(session.getPlacement('PoliceUI-003')).not.toBeNull();
+
+        expect(session.remove('PoliceUI-003')).toBe(true);
+        expect(session.getPlacement('PoliceUI-003')).toBeNull();
+        expect(session.moveCount).toBe(0);
+    });
+
+    it("撤下尚未上场的棋子返回 false", () => {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        expect(session.remove('PoliceUI-003')).toBe(false);
+        expect(session.moveCount).toBe(0);
+    });
+
+    it("撤下保留当前朝向，方便换个位置再摆", () => {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        expect(session.place('PoliceUI-003', { x: -2, y: 1 }, 180)).toBe(true);
+        expect(session.getRotation('PoliceUI-003')).toBe(180);
+
+        expect(session.remove('PoliceUI-003')).toBe(true);
+        expect(session.getRotation('PoliceUI-003')).toBe(180);
+    });
+
+    it("撤销可以把撤下的棋子原样放回", () => {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        expect(session.place('PoliceUI-003', { x: -2, y: 1 }, 180)).toBe(true);
+        expect(session.remove('PoliceUI-003')).toBe(true);
+        expect(session.undoCount).toBe(2);
+
+        expect(session.undo()).toBe(true);
+        expect(session.getPlacement('PoliceUI-003')).toEqual({ anchor: { x: -2, y: 1 }, rotation: 180 });
+    });
+
+    it("撤下不会产生胜利，重新摆满后才赢", () => {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        // 先按参考解摆满六枚，达成胜利
+        for (const step of LEVEL_01_SOLUTION) {
+            expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
+        }
+        expect(session.won).toBe(true);
+
+        // 撤下一枚：小偷仍被围住，但六枚没摆满，就不算赢
+        const taken = LEVEL_01_SOLUTION[5].pieceId;
+        expect(session.remove(taken)).toBe(true);
+        expect(session.captured).toBe(true);
+        expect(session.deployed).toBe(false);
+        expect(session.won).toBe(false);
+
+        // 放回去又赢了
+        const step = LEVEL_01_SOLUTION[5];
+        expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
+        expect(session.won).toBe(true);
+    });
+});

@@ -48,6 +48,7 @@ export class GameController extends Component {
     private readonly callbacks: PieceCallbacks = {
         place: (pieceId, anchor) => this.placePiece(pieceId, anchor),
         rotate: (pieceId) => this.rotatePiece(pieceId),
+        remove: (pieceId) => this.removePiece(pieceId),
     };
 
     protected onLoad(): void {
@@ -207,6 +208,14 @@ export class GameController extends Component {
         this.updateHud();
         this.showCoachOnce(pieceId);
         this.checkWin();
+        return true;
+    }
+
+    /** 撤下已上场的棋子：不会产生胜利，只更新在场数 */
+    private removePiece(pieceId: string): boolean {
+        if (!this.started || this.over) return false;
+        if (!this.session.remove(pieceId)) return false;
+        this.updateHud();
         return true;
     }
 

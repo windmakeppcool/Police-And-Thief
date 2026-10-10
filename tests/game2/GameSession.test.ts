@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { GameSession } from "../../assets/GScript/game/common/GameSession";
 import { PieceType, type LevelData, type PieceCatalog } from "../../assets/GScript/game/common/GameTypes";
-import { EXAMPLE_LEVEL, EXAMPLE_SOLUTION } from "../../assets/GScript/game/level/LevelData";
+import { LEVEL_01_SOLUTION, loadLevelFile } from "./helpers/levelFixtures";
 import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
 import { TEST_CATALOG } from "./helpers/levelSolver";
+
+const LEVEL_01 = loadLevelFile("level_01");
 
 const EMPTY_LEVEL: LevelData = {
     id: 'unit',
@@ -108,38 +110,55 @@ describe("GameSession 基础操作", () => {
 
 describe("GameSession 关卡规则", () => {
     it("开局时建筑已占用格子且未被围住", () => {
-        const session = new GameSession(EXAMPLE_LEVEL, BoardPieces);
+        const session = new GameSession(LEVEL_01, BoardPieces);
         const occupancy = session.occupancy();
-        const buildingCells = EXAMPLE_LEVEL.buildings.flatMap(b => session.cellsAt(b.pieceId, b.anchor, b.rotation));
+        const buildingCells = LEVEL_01.buildings.flatMap(b => session.cellsAt(b.pieceId, b.anchor, b.rotation));
 
-        expect(buildingCells.length).toBe(14);
-        expect(occupancy.size).toBe(14);
+        expect(buildingCells.length).toBe(6);
+        expect(occupancy.size).toBe(6);
         expect(session.captured).toBe(false);
         expect(session.moveCount).toBe(0);
     });
 
     it("不能把警力放到建筑或小偷所在格", () => {
-        const session = new GameSession(EXAMPLE_LEVEL, BoardPieces);
-        const building = EXAMPLE_LEVEL.buildings[0];
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        const building = LEVEL_01.buildings[0];
         expect(session.canPlaceAt(building.pieceId, building.anchor)).toBe(false);
-        expect(session.place('PoliceUI-003', EXAMPLE_LEVEL.thief)).toBe(false);
+        expect(session.place('PoliceUI-003', LEVEL_01.thief)).toBe(false);
     });
 
-    it("按参考解可以三步围住小偷并拿到三星（纯逻辑层）", () => {
-        const session = new GameSession(EXAMPLE_LEVEL, BoardPieces);
-        for (const step of EXAMPLE_SOLUTION) {
+    it("按参考解可以用满六个警察棋子围住小偷（纯逻辑层）", () => {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        for (const step of LEVEL_01_SOLUTION) {
             expect(session.canPlaceAt(step.pieceId, step.anchor, step.rotation)).toBe(true);
             expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
         }
 
-        expect(session.moveCount).toBe(3);
+        expect(session.moveCount).toBe(6);
         expect(session.captured).toBe(true);
-        expect(session.stars).toBe(3);
+        expect(session.deployed).toBe(true);
+        expect(session.won).toBe(true);
     });
 
-    it("按 UI 的操作方式（托盘预转向 + 落子）也能三步通关", () => {
-        const session = new GameSession(EXAMPLE_LEVEL, BoardPieces);
-        for (const step of EXAMPLE_SOLUTION) {
+    it("没摆满六枚之前，即便已围住小偷也不算赢", () => {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        // 参考解的前两枚就把小偷四条去路全堵上了
+        expect(session.place("PoliceUI-002", { x: 2, y: 2 }, 180)).toBe(true);
+        expect(session.place("PoliceUI-001", { x: 0, y: 0 }, 0)).toBe(true);
+        expect(session.captured).toBe(true);
+        expect(session.deployed).toBe(false);
+        expect(session.won).toBe(false);
+
+        for (const step of LEVEL_01_SOLUTION.slice(2)) {
+            expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
+        }
+        expect(session.deployed).toBe(true);
+        expect(session.won).toBe(true);
+    });
+
+    it("按 UI 的操作方式（托盘预转向 + 落子）也能用满六个棋子通关", () => {
+        const session = new GameSession(LEVEL_01, BoardPieces);
+        for (const step of LEVEL_01_SOLUTION) {
             // 玩家在托盘里点按棋子调好朝向（每点一次顺时针 90°）
             while (session.getRotation(step.pieceId) !== step.rotation) {
                 expect(session.rotateInTray(step.pieceId)).toBe(true);
@@ -147,9 +166,8 @@ describe("GameSession 关卡规则", () => {
             expect(session.place(step.pieceId, step.anchor)).toBe(true);
         }
 
-        expect(session.moveCount).toBe(3);
-        expect(session.captured).toBe(true);
-        expect(session.stars).toBe(3);
+        expect(session.moveCount).toBe(6);
+        expect(session.won).toBe(true);
     });
 
     it("托盘预转向不影响已上场的棋子，也只对警察生效", () => {

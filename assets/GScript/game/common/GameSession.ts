@@ -1,6 +1,6 @@
 import { buildOccupancy, type Occupancy } from "../rules/BoardOccupancy";
 import { canPlace } from "../rules/PlacementValidator";
-import { isThiefCaptured, starRating } from "../rules/WinCondition";
+import { isThiefCaptured } from "../rules/WinCondition";
 import { nextRotation, pieceCells, toAbsoluteCells } from "../rules/PieceGeometry";
 import { PieceType, type Coord, type LevelData, type PieceCatalog, type Rotation } from "./GameTypes";
 
@@ -179,12 +179,19 @@ export class GameSession {
     }
 
     /** 小偷是否已被围住 */
+    /** 小偷去路是否已被全部堵住 */
     get captured(): boolean {
         return isThiefCaptured(this.gridSize, this.level.thief, this.occupancy());
     }
 
-    get stars(): 1 | 2 | 3 {
-        return starRating(this.moves);
+    /** 六枚警察棋子是否都已上场 */
+    get deployed(): boolean {
+        return this.policeIds.length > 0 && this.policeIds.every(id => this.placements.has(id));
+    }
+
+    /** 获胜：小偷被围住，且六枚警力全部就位 */
+    get won(): boolean {
+        return this.captured && this.deployed;
     }
 
     private requirePiece(pieceId: string): PieceCatalog[string] {

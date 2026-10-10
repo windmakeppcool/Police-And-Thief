@@ -16,10 +16,3 @@ export function isThiefCaptured(gridSize: number, thief: Coord, occupancy: Occup
     if (exits.length === 0) return false;
     return exits.every(c => occupancy.has(coordKey(c)));
 }
-
-/** 评级：≤4 队警力三星，≤5 队两星，其余一星 */
-export function starRating(moves: number): 1 | 2 | 3 {
-    if (moves <= 4) return 3;
-    if (moves <= 5) return 2;
-    return 1;
-}

@@ -146,8 +146,7 @@ export class LevelsView {
         addSprite(tile, this.frames.levelTile, { size: boxSize(this.m, TILE, TILE), sliced: true });
         localLabel(tile, this.m, 'TileNum', num, 21, TILE, TILE,
             { x: 0, y: 14, w: TILE, h: 28 }, { color: PocketPalette.ink, bold: true });
-        const stars = level % 3 === 0 ? '★★☆' : '★★★';
-        localLabel(tile, this.m, 'TileStars', stars, 12, TILE, TILE,
+        localLabel(tile, this.m, 'TileStars', '★', 12, TILE, TILE,
             { x: 0, y: 46, w: TILE, h: 16 }, { color: new Color(198, 138, 47, 255) });
     }
 

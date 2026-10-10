@@ -1,0 +1,9 @@
+{
+    "id": "level_03",
+    "gridSize": 6,
+    "thief": { "x": 2, "y": 3 },
+    "buildings": [
+        { "pieceId": "Structure-001", "anchor": { "x": 4, "y": 1 }, "rotation": 180 },
+        { "pieceId": "Structure-003", "anchor": { "x": 0, "y": 3 }, "rotation": 0 }
+    ]
+}

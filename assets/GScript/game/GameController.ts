@@ -4,7 +4,8 @@ import { EViewLayer } from '../core/ui/EViewLayer';
 import { G_VIEW_SIZE } from '../core/ui/UIManager';
 import { GameSession } from './common/GameSession';
 import type { Coord } from './common/GameTypes';
-import { EXAMPLE_LEVEL } from './level/LevelData';
+import { currentLevelId } from './level/LevelSelection';
+import { loadLevel } from './LevelRepository';
 import { BoardGrid } from './piece/BoardGrid';
 import type { PieceCallbacks } from './piece/DraggablePiece';
 import { pieceBounds } from './piece/pieceLayout';
@@ -52,10 +53,20 @@ export class GameController extends Component {
     protected onLoad(): void {
         const transform = this.node.getComponent(UITransform) ?? this.node.addComponent(UITransform);
         transform.setContentSize(G_VIEW_SIZE.width, G_VIEW_SIZE.height);
-        this.session = new GameSession(EXAMPLE_LEVEL, BoardPieces);
     }
 
     protected async start(): Promise<void> {
+        // 关卡是 JSON 资源，必须异步加载；onLoad 里还拿不到
+        const levelId = currentLevelId();
+        const level = await loadLevel(levelId);
+        if (!level) {
+            console.error(`[GameController] 关卡 ${levelId} 校验失败，拒绝进入该关`);
+            // 菜单层仍在下方，销毁对局节点即可回到关卡选择
+            this.node.destroy();
+            return;
+        }
+        this.session = new GameSession(level, BoardPieces);
+
         this.layout = computeLayout();
         this.frames = await loadDesignFrames();
         this.buildViews();
@@ -187,7 +198,7 @@ export class GameController extends Component {
     /** 延迟弹出胜利卡片；重开时需要能取消，避免旧卡片盖在新一局上 */
     private readonly showWinDelayed = (): void => {
         if (!this.over) return;
-        this.overlays.showWin(this.session.stars, this.session.moveCount);
+        this.overlays.showWin();
     };
 
     private placePiece(pieceId: string, anchor: Coord): boolean {
@@ -210,7 +221,8 @@ export class GameController extends Component {
     }
 
     private checkWin(): void {
-        if (!this.session.captured) return;
+        // 获胜要同时满足：小偷被围住 + 六枚警力全部就位
+        if (!this.session.won) return;
         this.over = true;
         this.setPiecesInteractable(false);
         this.boardGrid.markThiefCaught();

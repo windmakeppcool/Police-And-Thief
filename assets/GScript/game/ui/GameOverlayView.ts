@@ -1,4 +1,4 @@
-import { Label, Node, Sprite, Vec3 } from 'cc';
+import { Label, Node, Vec3 } from 'cc';
 import { DesignFrames, PocketPalette } from './DesignAssets';
 import { GameLayout } from './Layout';
 import { addSprite, createLabel, createNode } from '../../core/ui/UIFactory';
@@ -67,7 +67,6 @@ export class GameOverlayView {
     readonly node: Node;
     private readonly startCard: Node;
     private readonly winCard: Node;
-    private readonly winStars: Node[] = [];
     private readonly winText: Label;
     private readonly dim: Node;
 
@@ -113,11 +112,9 @@ export class GameOverlayView {
 
     private buildWinCard(): Node {
         const card = this.buildCard('WinCard');
-        for (let i = 0; i < 3; i++) {
-            const star = createNode(`WinStar_${i}`, card, { width: 48, height: 48 }, new Vec3((i - 1) * 60, 128, 0));
-            addSprite(star, this.frames.starInactive, { size: { width: 48, height: 48 } });
-            this.winStars.push(star);
-        }
+        // 通关固定得 1 颗星，不做多档评级，所以只画一颗
+        const star = createNode('WinStar', card, { width: 56, height: 56 }, new Vec3(0, 128, 0));
+        addSprite(star, this.frames.starActive, { size: { width: 56, height: 56 } });
         createLabel(card, 'WinTitle', '抓住啦！', 40, { color: PocketPalette.ink, bold: true }, new Vec3(0, 54, 0));
         const text = createLabel(card, 'WinText', '', 18, { color: PocketPalette.ink, size: { width: 320, height: 80 } }, new Vec3(0, -10, 0));
         text.getComponent(Label)!.enableWrapText = true;
@@ -164,12 +161,9 @@ export class GameOverlayView {
         return this.startCard.active;
     }
 
-    showWin(stars: number, moves: number): void {
-        this.winStars.forEach((star, i) => {
-            const sprite = star.getComponent(Sprite);
-            if (sprite) sprite.spriteFrame = (i < stars ? this.frames.starActive : this.frames.starInactive) ?? sprite.spriteFrame;
-        });
-        this.winText.string = `只用 ${moves} 队警力就封锁了小镇，\n小偷插翅难逃！`;
+    /** 获胜 = 小偷被围住 + 六枚警力全部就位，两者都恒定，无需展示变量 */
+    showWin(): void {
+        this.winText.string = '六队警力全部就位，\n小镇被封锁了！';
         this.winCard.active = true;
         this.updateDim();
     }

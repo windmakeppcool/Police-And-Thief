@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildOccupancy } from "../../assets/GScript/game/rules/BoardOccupancy";
 import { canPlace, isInBoard } from "../../assets/GScript/game/rules/PlacementValidator";
-import { isThiefCaptured, starRating, thiefExits } from "../../assets/GScript/game/rules/WinCondition";
+import { isThiefCaptured, thiefExits } from "../../assets/GScript/game/rules/WinCondition";
 import type { Coord } from "../../assets/GScript/game/common/GameTypes";
 
 const THIEF: Coord = { x: 1, y: 1 };
@@ -74,12 +74,5 @@ describe("WinCondition", () => {
         const full = buildOccupancy([{ owner: 'a', cells: [{ x: 2, y: 1 }, { x: 0, y: 1 }, { x: 1, y: 2 }, { x: 1, y: 0 }] }]);
         expect(isThiefCaptured(GRID, THIEF, partial)).toBe(false);
         expect(isThiefCaptured(GRID, THIEF, full)).toBe(true);
-    });
-
-    it("rates stars by used squads", () => {
-        expect(starRating(3)).toBe(3);
-        expect(starRating(4)).toBe(3);
-        expect(starRating(5)).toBe(2);
-        expect(starRating(6)).toBe(1);
     });
 });

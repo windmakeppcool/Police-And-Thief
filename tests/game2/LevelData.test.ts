@@ -1,15 +1,18 @@
 import { describe, expect, it } from "vitest";
+import { GameSession } from "../../assets/GScript/game/common/GameSession";
 import { coordKey } from "../../assets/GScript/game/rules/BoardOccupancy";
 import { pieceCells, toAbsoluteCells } from "../../assets/GScript/game/rules/PieceGeometry";
 import { thiefExits } from "../../assets/GScript/game/rules/WinCondition";
 import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
-import { EXAMPLE_LEVEL, EXAMPLE_SOLUTION } from "../../assets/GScript/game/level/LevelData";
 import { enumeratePlacements, minMovesToCapture } from "./helpers/levelSolver";
+import { LEVEL_01_SOLUTION, loadLevelFile } from "./helpers/levelFixtures";
 
-describe("关卡数据", () => {
-    const { gridSize, thief, buildings } = EXAMPLE_LEVEL;
+const level = loadLevelFile("level_01");
 
-    it("基础配置为 6×6 棋盘", () => {
+describe("关卡数据 level_01", () => {
+    const { gridSize, thief, buildings } = level;
+
+    it("基础配置为 6×6 棋盘，小偷在 (1,1)", () => {
         expect(gridSize).toBe(6);
         expect(thief).toEqual({ x: 1, y: 1 });
     });
@@ -42,20 +45,28 @@ describe("关卡数据", () => {
         expect(thiefExits(gridSize, thief).every(exit => !blocked.has(coordKey(exit)))).toBe(true);
     });
 
-    it("最少三步才能围住小偷（三星需要最优解）", () => {
+    it("最少两步才能围住小偷", () => {
         const blocked = buildings.flatMap(building => {
             const piece = BoardPieces[building.pieceId];
             return toAbsoluteCells(pieceCells(piece, building.rotation), building.anchor);
         });
         const solverPieces = enumeratePlacements(BoardPieces, gridSize, thief);
 
-        expect(minMovesToCapture(solverPieces, gridSize, thief, blocked, 2)).toBeNull();
-        expect(minMovesToCapture(solverPieces, gridSize, thief, blocked, 3)).toBe(3);
+        expect(minMovesToCapture(solverPieces, gridSize, thief, blocked, 1)).toBeNull();
+        expect(minMovesToCapture(solverPieces, gridSize, thief, blocked, 2)).toBe(2);
     });
 
-    it("参考解使用的棋子在目录中存在", () => {
-        for (const step of EXAMPLE_SOLUTION) {
-            expect(BoardPieces[step.pieceId]).toBeDefined();
+    it("参考解用满六个警察棋子后围住小偷", () => {
+        const session = new GameSession(level, BoardPieces);
+        for (const step of LEVEL_01_SOLUTION) {
+            expect(
+                session.place(step.pieceId, step.anchor, step.rotation),
+                `${step.pieceId} 落在 (${step.anchor.x}, ${step.anchor.y}) 应当合法`,
+            ).toBe(true);
         }
+        expect(session.moveCount).toBe(LEVEL_01_SOLUTION.length);
+        expect(LEVEL_01_SOLUTION.length).toBe(6);
+        expect(session.captured).toBe(true);
+        expect(session.won).toBe(true);
     });
 });

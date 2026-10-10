@@ -8,7 +8,7 @@ import { pieceCells, toAbsoluteCells } from "../../assets/GScript/game/rules/Pie
 import { isThiefCaptured } from "../../assets/GScript/game/rules/WinCondition";
 import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
 import { parseLevel, parseLevelIndex } from "../../assets/GScript/game/level/LevelParser";
-import { enumeratePlacements, minMovesToCapture } from "./helpers/levelSolver";
+import { canCaptureUsingAllPieces, enumeratePlacements } from "./helpers/levelSolver";
 
 const LEVELS_DIR = fileURLToPath(new URL("../../assets/Game/levels/", import.meta.url));
 
@@ -22,9 +22,6 @@ const readJson = (name: string): unknown =>
 const POLICE_ONLY: PieceCatalog = Object.fromEntries(
     Object.entries(BoardPieces).filter(([, piece]) => piece.type === PieceType.Police),
 );
-
-/** 三星线：步数 ≤4 即三星，关卡至少要在这条线内可解 */
-const SOLVE_LIMIT = 4;
 
 describe("关卡 JSON 资料", () => {
     const levelFiles = readdirSync(LEVELS_DIR)
@@ -45,7 +42,7 @@ describe("关卡 JSON 资料", () => {
         }
     });
 
-    it("每关开局小偷尚未被围死，且在三星线内可解", () => {
+    it("每关开局小偷尚未被围死，且用满全部警察棋子可解", () => {
         const index = parseLevelIndex(readJson("levels.json"));
         for (const levelId of index) {
             const level = parseLevel(readJson(`${levelId}.json`), BoardPieces);
@@ -60,10 +57,12 @@ describe("关卡 JSON 资料", () => {
                 `${levelId} 开局不应已被围死`,
             ).toBe(false);
 
+            // 建筑是固定路障，不能算作玩家可落的子，所以只用警察棋子求解
             const solverPieces = enumeratePlacements(POLICE_ONLY, level.gridSize, level.thief);
-            const min = minMovesToCapture(solverPieces, level.gridSize, level.thief, blocked, SOLVE_LIMIT);
-            expect(min, `${levelId} 在 ${SOLVE_LIMIT} 步内应可解`).not.toBeNull();
-            expect(min as number).toBeGreaterThanOrEqual(1);
+            expect(
+                canCaptureUsingAllPieces(solverPieces, level.gridSize, level.thief, blocked),
+                `${levelId} 应当能用满全部警察棋子围住小偷`,
+            ).toBe(true);
         }
     });
 });

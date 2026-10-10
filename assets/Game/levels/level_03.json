@@ -1,11 +1,9 @@
 {
     "id": "level_03",
     "gridSize": 6,
-    "thief": { "x": 3, "y": 3 },
+    "thief": { "x": 2, "y": 3 },
     "buildings": [
-        { "pieceId": "Structure-003", "anchor": { "x": 4, "y": 3 }, "rotation": 0 },
-        { "pieceId": "Structure-004", "anchor": { "x": 1, "y": 3 }, "rotation": 0 },
-        { "pieceId": "Structure-001", "anchor": { "x": 5, "y": 1 }, "rotation": 180 },
-        { "pieceId": "Structure-002", "anchor": { "x": 2, "y": 0 }, "rotation": 180 }
+        { "pieceId": "Structure-001", "anchor": { "x": 4, "y": 1 }, "rotation": 180 },
+        { "pieceId": "Structure-003", "anchor": { "x": 0, "y": 3 }, "rotation": 0 }
     ]
 }

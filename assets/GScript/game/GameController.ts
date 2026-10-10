@@ -198,7 +198,7 @@ export class GameController extends Component {
     /** 延迟弹出胜利卡片；重开时需要能取消，避免旧卡片盖在新一局上 */
     private readonly showWinDelayed = (): void => {
         if (!this.over) return;
-        this.overlays.showWin(this.session.stars, this.session.moveCount);
+        this.overlays.showWin(this.session.moveCount);
     };
 
     private placePiece(pieceId: string, anchor: Coord): boolean {

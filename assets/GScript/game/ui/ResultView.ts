@@ -71,11 +71,9 @@ export class ResultView {
         localLabel(content, m, 'Subtitle', '小镇恢复平静，你就是今日机智担当。', 11, VIEW_W, CONTENT_H,
             { x: 0, y: SUB_Y, w: VIEW_W, h: 18 }, { color: new Color(125, 141, 118, 255) });
 
-        // 三星：中间略大上移
+        // 通关固定得 1 颗星，不做多档评级
         const starY = STARS_Y + 20;
-        localIcon(content, m, 'Star1', frames.starActive, VIEW_W, CONTENT_H, VIEW_W / 2 - 40, starY, 40);
-        localIcon(content, m, 'Star2', frames.starActive, VIEW_W, CONTENT_H, VIEW_W / 2, starY + 4, 52);
-        localIcon(content, m, 'Star3', frames.starActive, VIEW_W, CONTENT_H, VIEW_W / 2 + 40, starY, 40);
+        localIcon(content, m, 'Star', frames.starActive, VIEW_W, CONTENT_H, VIEW_W / 2, starY, 52);
 
         // 成绩单票据
         const ticket = localBox('Ticket', content, m, VIEW_W, CONTENT_H, 0, TICKET_Y, VIEW_W, TICKET_H);

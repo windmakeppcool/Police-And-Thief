@@ -1,6 +1,6 @@
 import { buildOccupancy, type Occupancy } from "../rules/BoardOccupancy";
 import { canPlace } from "../rules/PlacementValidator";
-import { isThiefCaptured, starRating } from "../rules/WinCondition";
+import { isThiefCaptured } from "../rules/WinCondition";
 import { nextRotation, pieceCells, toAbsoluteCells } from "../rules/PieceGeometry";
 import { PieceType, type Coord, type LevelData, type PieceCatalog, type Rotation } from "./GameTypes";
 
@@ -181,10 +181,6 @@ export class GameSession {
     /** 小偷是否已被围住 */
     get captured(): boolean {
         return isThiefCaptured(this.gridSize, this.level.thief, this.occupancy());
-    }
-
-    get stars(): 1 | 2 | 3 {
-        return starRating(this.moves);
     }
 
     private requirePiece(pieceId: string): PieceCatalog[string] {

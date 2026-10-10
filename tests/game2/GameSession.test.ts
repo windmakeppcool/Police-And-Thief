@@ -114,8 +114,8 @@ describe("GameSession 关卡规则", () => {
         const occupancy = session.occupancy();
         const buildingCells = LEVEL_01.buildings.flatMap(b => session.cellsAt(b.pieceId, b.anchor, b.rotation));
 
-        expect(buildingCells.length).toBe(14);
-        expect(occupancy.size).toBe(14);
+        expect(buildingCells.length).toBe(6);
+        expect(occupancy.size).toBe(6);
         expect(session.captured).toBe(false);
         expect(session.moveCount).toBe(0);
     });
@@ -127,19 +127,18 @@ describe("GameSession 关卡规则", () => {
         expect(session.place('PoliceUI-003', LEVEL_01.thief)).toBe(false);
     });
 
-    it("按参考解可以三步围住小偷并拿到三星（纯逻辑层）", () => {
+    it("按参考解可以用满六个警察棋子围住小偷（纯逻辑层）", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
         for (const step of LEVEL_01_SOLUTION) {
             expect(session.canPlaceAt(step.pieceId, step.anchor, step.rotation)).toBe(true);
             expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
         }
 
-        expect(session.moveCount).toBe(3);
+        expect(session.moveCount).toBe(6);
         expect(session.captured).toBe(true);
-        expect(session.stars).toBe(3);
     });
 
-    it("按 UI 的操作方式（托盘预转向 + 落子）也能三步通关", () => {
+    it("按 UI 的操作方式（托盘预转向 + 落子）也能用满六个棋子通关", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
         for (const step of LEVEL_01_SOLUTION) {
             // 玩家在托盘里点按棋子调好朝向（每点一次顺时针 90°）
@@ -149,9 +148,8 @@ describe("GameSession 关卡规则", () => {
             expect(session.place(step.pieceId, step.anchor)).toBe(true);
         }
 
-        expect(session.moveCount).toBe(3);
+        expect(session.moveCount).toBe(6);
         expect(session.captured).toBe(true);
-        expect(session.stars).toBe(3);
     });
 
     it("托盘预转向不影响已上场的棋子，也只对警察生效", () => {

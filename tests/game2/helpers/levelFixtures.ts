@@ -1,9 +1,17 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Coord, LevelData, Rotation } from "../../../assets/GScript/game/common/GameTypes";
+import { PieceType, type Coord, type LevelData, type PieceCatalog, type Rotation } from "../../../assets/GScript/game/common/GameTypes";
 import { parseLevel } from "../../../assets/GScript/game/level/LevelParser";
 import { BoardPieces } from "../../../assets/GScript/game/piece/pieces";
+
+/**
+ * 只用警察棋子的目录：建筑是固定路障，不能算作玩家可落的子，
+ * 否则「可解」会被建筑棋子的落点误判为成立。
+ */
+export const POLICE_ONLY_PIECES: PieceCatalog = Object.fromEntries(
+    Object.entries(BoardPieces).filter(([, piece]) => piece.type === PieceType.Police),
+);
 
 /** assets/Game/levels 在磁盘上的绝对路径 */
 const LEVELS_DIR = fileURLToPath(new URL("../../../assets/Game/levels/", import.meta.url));

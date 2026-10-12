@@ -16,6 +16,25 @@ const EMPTY_LEVEL: LevelData = {
 
 const CATALOG: PieceCatalog = { ...TEST_CATALOG };
 
+/** 给 CATALOG 补一枚单格建筑，返回带该建筑的关卡 */
+function levelWithBuilding(anchor: { x: number; y: number }): {
+    level: LevelData;
+    catalog: PieceCatalog;
+} {
+    const catalog: PieceCatalog = {
+        ...CATALOG,
+        'Building-A': {
+            id: 'Building-A',
+            type: PieceType.Building,
+            cells: [{ name: 'white-00', coord: { x: 0, y: 0 } }],
+            origin: 0,
+            rotation: 0,
+        },
+    };
+    const level: LevelData = { ...EMPTY_LEVEL, buildings: [{ pieceId: 'Building-A', anchor, rotation: 0 }] };
+    return { level, catalog };
+}
+
 describe("GameSession 基础操作", () => {
     it("列出可操作的警察棋子", () => {
         const session = new GameSession(EMPTY_LEVEL, CATALOG);
@@ -81,13 +100,21 @@ describe("GameSession 基础操作", () => {
         session.place('Police-C', { x: -2, y: 0 });
         session.rotate('Police-C');
         session.place('Police-C', { x: 1, y: -2 });
-        expect(session.undoCount).toBe(2);
+        // 放置、场上旋转、挪位各一条历史
+        expect(session.undoCount).toBe(3);
 
+        // 撤销挪位：回到旋转后的落点，朝向保留
         expect(session.undo()).toBe(true);
         expect(session.getPlacement('Police-C')?.anchor).toEqual({ x: -2, y: 0 });
         expect(session.getRotation('Police-C')).toBe(90);
         expect(session.moveCount).toBe(1);
 
+        // 撤销旋转：原地不动，只回退朝向
+        expect(session.undo()).toBe(true);
+        expect(session.getPlacement('Police-C')?.anchor).toEqual({ x: -2, y: 0 });
+        expect(session.getRotation('Police-C')).toBe(0);
+
+        // 撤销放置：退回托盘
         expect(session.undo()).toBe(true);
         expect(session.getPlacement('Police-C')).toBeNull();
         expect(session.getRotation('Police-C')).toBe(0);
@@ -105,6 +132,115 @@ describe("GameSession 基础操作", () => {
         expect(session.undoCount).toBe(0);
         expect(session.getPlacement('Police-C')).toBeNull();
         expect(session.getRotation('Police-C')).toBe(0);
+    });
+});
+
+describe("GameSession 撤销历史与旋转", () => {
+    it("托盘预转向后放置，撤销时恢复预转向；再撤销回到更早的托盘朝向", () => {
+        const session = new GameSession(EMPTY_LEVEL, CATALOG);
+
+        // 托盘里预转向两次：0 -> 90 -> 180
+        expect(session.rotateInTray('Police-C')).toBe(true);
+        expect(session.rotateInTray('Police-C')).toBe(true);
+        expect(session.getRotation('Police-C')).toBe(180);
+        expect(session.undoCount).toBe(2);
+
+        // 带着预转向落子
+        expect(session.place('Police-C', { x: -2, y: 0 })).toBe(true);
+        expect(session.getRotation('Police-C')).toBe(180);
+
+        // 撤销落子：回托盘且保留预转向 180
+        expect(session.undo()).toBe(true);
+        expect(session.getPlacement('Police-C')).toBeNull();
+        expect(session.getRotation('Police-C')).toBe(180);
+        expect(session.moveCount).toBe(0);
+
+        // 继续撤销：托盘朝向逐次回退
+        expect(session.undo()).toBe(true);
+        expect(session.getRotation('Police-C')).toBe(90);
+        expect(session.undo()).toBe(true);
+        expect(session.getRotation('Police-C')).toBe(0);
+        expect(session.undo()).toBe(false);
+    });
+
+    it("连续两次场上旋转后连续撤销：朝向逐次回退，anchor 始终不变", () => {
+        const session = new GameSession(EMPTY_LEVEL, CATALOG);
+        const anchor = { x: 0, y: 0 };
+        expect(session.place('Police-C', anchor)).toBe(true);
+
+        expect(session.rotate('Police-C')).toBe(true);
+        expect(session.rotate('Police-C')).toBe(true);
+        expect(session.getRotation('Police-C')).toBe(180);
+        expect(session.getPlacement('Police-C')?.anchor).toEqual(anchor);
+        expect(session.undoCount).toBe(3);
+
+        expect(session.undo()).toBe(true);
+        expect(session.getRotation('Police-C')).toBe(90);
+        expect(session.getPlacement('Police-C')?.anchor).toEqual(anchor);
+
+        expect(session.undo()).toBe(true);
+        expect(session.getRotation('Police-C')).toBe(0);
+        expect(session.getPlacement('Police-C')?.anchor).toEqual(anchor);
+    });
+
+    it("移动后只做一次旋转再撤销：只回退旋转，位置保持移动后的状态", () => {
+        const session = new GameSession(EMPTY_LEVEL, CATALOG);
+        expect(session.place('Police-C', { x: -2, y: 0 })).toBe(true);
+        // 挪到 (-2,-2)：横条与转 90° 后的竖条都不越界、不压小偷 (1,1)
+        expect(session.place('Police-C', { x: -2, y: -2 })).toBe(true);
+        expect(session.rotate('Police-C')).toBe(true);
+        expect(session.getRotation('Police-C')).toBe(90);
+
+        expect(session.undo()).toBe(true);
+        expect(session.getPlacement('Police-C')?.anchor).toEqual({ x: -2, y: -2 });
+        expect(session.getRotation('Police-C')).toBe(0);
+        expect(session.moveCount).toBe(1);
+    });
+
+    it("建筑棋子调用 place/remove/rotate 一律返回 false 且状态不变", () => {
+        const { level, catalog } = levelWithBuilding({ x: -3, y: -3 });
+        const session = new GameSession(level, catalog);
+
+        expect(session.canPlaceAt('Building-A', { x: 2, y: 2 })).toBe(false);
+        expect(session.place('Building-A', { x: 2, y: 2 })).toBe(false);
+        expect(session.canRotate('Building-A')).toBe(false);
+        expect(session.rotate('Building-A')).toBe(false);
+        expect(session.remove('Building-A')).toBe(false);
+
+        // 建筑仍按关卡配置占据格子，状态未被搅动；没有任何历史产生
+        expect(session.undoCount).toBe(0);
+        expect(session.moveCount).toBe(0);
+        expect(session.canPlaceAt('Police-C', { x: -3, y: -3 })).toBe(false);
+    });
+
+    it("已上场棋子旋转撞上其他棋子：旋转失败、朝向不变、撤销历史不增", () => {
+        // 建筑在 (0,1)：Police-C 横条 rotation=0 占 (-1,0)(0,0)(1,0)，不碰建筑；
+        // 顺时针转 90° 后竖条占 (0,-1)(0,0)(0,1)，顶端正好撞上建筑
+        const { level, catalog } = levelWithBuilding({ x: 0, y: 1 });
+        const session = new GameSession(level, catalog);
+
+        expect(session.place('Police-C', { x: 0, y: 0 })).toBe(true);
+        expect(session.undoCount).toBe(1);
+        expect(session.canRotate('Police-C')).toBe(false);
+        expect(session.rotate('Police-C')).toBe(false);
+        expect(session.getRotation('Police-C')).toBe(0);
+        expect(session.getPlacement('Police-C')?.anchor).toEqual({ x: 0, y: 0 });
+        expect(session.undoCount).toBe(1);
+    });
+
+    it("已上场棋子挪到非法落点：返回 false，anchor/rotation 保留，撤销历史不增", () => {
+        const session = new GameSession(EMPTY_LEVEL, CATALOG);
+        expect(session.place('Police-C', { x: -2, y: 0 })).toBe(true);
+        expect(session.rotate('Police-C')).toBe(true);
+        expect(session.getRotation('Police-C')).toBe(90);
+        const undoBefore = session.undoCount;
+
+        // 挪到越界位置：当前朝向是竖条（占 (x,y-1)(x,y)(x,y+1)），x=-3 时整列出界
+        expect(session.place('Police-C', { x: -4, y: 0 })).toBe(false);
+        expect(session.getPlacement('Police-C')?.anchor).toEqual({ x: -2, y: 0 });
+        expect(session.getRotation('Police-C')).toBe(90);
+        expect(session.moveCount).toBe(1);
+        expect(session.undoCount).toBe(undoBefore);
     });
 });
 
@@ -178,21 +314,8 @@ describe("GameSession 关卡规则", () => {
         session.place('Police-A', { x: -2, y: 0 });
         expect(session.rotateInTray('Police-A')).toBe(false);
 
-        const levelWithBuilding: LevelData = {
-            ...EMPTY_LEVEL,
-            buildings: [{ pieceId: 'Building-A', anchor: { x: -3, y: -3 }, rotation: 0 }],
-        };
-        const catalog: PieceCatalog = {
-            ...CATALOG,
-            'Building-A': {
-                id: 'Building-A',
-                type: PieceType.Building,
-                cells: [{ name: 'white-00', coord: { x: 0, y: 0 } }],
-                origin: 0,
-                rotation: 0,
-            },
-        };
-        const withBuilding = new GameSession(levelWithBuilding, catalog);
+        const { level, catalog } = levelWithBuilding({ x: -3, y: -3 });
+        const withBuilding = new GameSession(level, catalog);
         expect(withBuilding.rotateInTray('Building-A')).toBe(false);
     });
 });

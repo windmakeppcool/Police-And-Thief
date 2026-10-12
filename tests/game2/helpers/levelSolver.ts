@@ -1,6 +1,6 @@
 import { pieceCells, toAbsoluteCells } from "../../../assets/GScript/game/rules/PieceGeometry";
 import { PieceType, type Coord, type PieceCatalog, type Rotation } from "../../../assets/GScript/game/common/GameTypes";
-import { isThiefCaptured } from "../../../assets/GScript/game/rules/WinCondition";
+import { isThiefCaptured, thiefExits } from "../../../assets/GScript/game/rules/WinCondition";
 
 export const TEST_CATALOG: PieceCatalog = {
     'Police-A': {
@@ -47,29 +47,45 @@ export type SolverPiece = Readonly<{
     placements: ReadonlyArray<{ rotation: Rotation; anchor: Coord; cells: Coord[] }>;
 }>;
 
+/** 满编求解 DFS 的默认节点预算：超过即按 unknown 处理，避免坏关卡把测试挂死 */
+export const SOLVER_NODE_BUDGET = 300_000;
+
 const key = (c: Coord) => `${c.x},${c.y}`;
 
-export function thiefExits(gridSize: number, thief: Coord): Coord[] {
-    const dirs = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
-    return dirs
-        .map(d => ({ x: thief.x + d.x, y: thief.y + d.y }))
-        .filter(c => c.x >= -gridSize / 2 && c.x < gridSize / 2 && c.y >= -gridSize / 2 && c.y < gridSize / 2);
+/**
+ * 按占格集合生成去重键：同一棋子不同 rotation 若占格完全相同
+ * （如横条的 0/180、竖条的 90/270、单格棋子的任意朝向），只保留一个落点候选。
+ */
+function cellSetKey(cellKeys: readonly string[]): string {
+    return [...cellKeys].sort().join("|");
 }
 
-/** 枚举棋子在 gridSize×gridSize 棋盘上的全部合法落点 */
+/** 枚举棋子在 gridSize×gridSize 棋盘上的全部合法落点（旋转后占格相同的候选只保留一个） */
 export function enumeratePlacements(catalog: PieceCatalog, gridSize: number, thief: Coord): SolverPiece[] {
     const half = gridSize / 2;
     const rotations: Rotation[] = [0, 90, 180, 270];
     return Object.values(catalog).map(piece => {
         const placements: { rotation: Rotation; anchor: Coord; cells: Coord[] }[] = [];
+        // 同一 anchor 下按占格集合去重：旋转对称的朝向只枚举一次
+        const seenByAnchor = new Map<string, Set<string>>();
         for (const rotation of rotations) {
             const relative = pieceCells(piece, rotation);
             for (let ax = -half; ax < half; ax++) {
                 for (let ay = -half; ay < half; ay++) {
-                    const cells = toAbsoluteCells(relative, { x: ax, y: ay });
+                    const anchor = { x: ax, y: ay };
+                    const cells = toAbsoluteCells(relative, anchor);
                     if (cells.some(c => c.x < -half || c.x >= half || c.y < -half || c.y >= half)) continue;
                     if (cells.some(c => c.x === thief.x && c.y === thief.y)) continue;
-                    placements.push({ rotation, anchor: { x: ax, y: ay }, cells });
+                    const anchorKey = key(anchor);
+                    const setKey = cellSetKey(cells.map(key));
+                    let seen = seenByAnchor.get(anchorKey);
+                    if (!seen) {
+                        seen = new Set<string>();
+                        seenByAnchor.set(anchorKey, seen);
+                    }
+                    if (seen.has(setKey)) continue;
+                    seen.add(setKey);
+                    placements.push({ rotation, anchor, cells });
                 }
             }
         }
@@ -119,20 +135,31 @@ type PackPiece = Readonly<{ cells: number; placements: PackPlacement[] }>;
 /** 满编解里的一枚棋子：落点是绝对坐标 */
 export type PlacedPiece = Readonly<{ pieceId: string; anchor: Coord; rotation: Rotation }>;
 
+/** 满编求解结果三态：找到解 / 穷尽无解 / 节点预算耗尽无法判定 */
+export type DetailedResult = Readonly<{
+    status: 'solved' | 'unsat' | 'unknown';
+    solution: readonly PlacedPiece[] | null;
+    /** 实际访问的 DFS 节点数，用于监控搜索是否逼近预算上限 */
+    nodes: number;
+}>;
+
 /**
  * 找一个「用满全部棋子」的围捕解：
  * 把 pieces 里的每一个棋子都放到棋盘上（互不重叠、不压小偷、不出界），
- * 且放完后小偷的所有去路都被占据（棋子或建筑）。找不到返回 null。
+ * 且放完后小偷的所有去路都被占据（棋子或建筑）。
  *
- * 搜索带节点预算，超预算按「未找到解」处理，避免坏关卡把测试挂死。
+ * 返回三态：
+ * - solved：找到解，solution 为每枚棋子的落点；
+ * - unsat：穷尽全部摆法仍无解；
+ * - unknown：DFS 节点预算耗尽，无法判定是否有解。
  */
-export function findFullSquadSolution(
+export function findFullSquadSolutionDetailed(
     pieces: readonly SolverPiece[],
     gridSize: number,
     thief: Coord,
     blocked: readonly Coord[],
-    nodeBudget = 300_000,
-): PlacedPiece[] | null {
+    nodeBudget: number = SOLVER_NODE_BUDGET,
+): DetailedResult {
     const boardCells = gridSize * gridSize;
     const occupied0 = new Set(blocked.map(key));
     const uncovered0 = thiefExits(gridSize, thief).map(key).filter(k => !occupied0.has(k));
@@ -146,16 +173,20 @@ export function findFullSquadSolution(
     }));
 
     // 有棋子一个合法落点都不剩，必然放不满
-    if (pieces_.some(p => p.placements.length === 0)) return null;
+    if (pieces_.some(p => p.placements.length === 0)) return { status: 'unsat', solution: null, nodes: 0 };
 
     let nodes = 0;
+    let budgetExceeded = false;
     const search = (
         remaining: readonly number[],
         occupied: ReadonlySet<string>,
         uncovered: readonly string[],
         acc: PlacedPiece[],
     ): PlacedPiece[] | null => {
-        if (++nodes > nodeBudget) return null;
+        if (++nodes > nodeBudget) {
+            budgetExceeded = true;
+            return null;
+        }
         if (remaining.length === 0) return uncovered.length === 0 ? acc : null;
 
         // 剪枝：剩下的格子不够放下剩下的棋子（小偷那格永远不可用）
@@ -193,6 +224,7 @@ export function findFullSquadSolution(
                 const got = search(rest(i), next, uncovered.filter(k => !pl.cellKeys.includes(k)),
                     [...acc, toPlaced(pieces, i, pl)]);
                 if (got) return got;
+                if (budgetExceeded) return null;
             }
             return null;
         }
@@ -213,11 +245,34 @@ export function findFullSquadSolution(
             pl.cellKeys.forEach(k => next.add(k));
             const got = search(rest(bestI), next, uncovered, [...acc, toPlaced(pieces, bestI, pl)]);
             if (got) return got;
+            if (budgetExceeded) return null;
         }
         return null;
     };
 
-    return search(pieces_.map((_, i) => i), occupied0, uncovered0, []);
+    const solution = search(pieces_.map((_, i) => i), occupied0, uncovered0, []);
+    if (solution) return { status: 'solved', solution, nodes };
+    // 搜索途中预算耗尽则无法判定，穷尽才算无解
+    return budgetExceeded
+        ? { status: 'unknown', solution: null, nodes }
+        : { status: 'unsat', solution: null, nodes };
+}
+
+/**
+ * 找一个「用满全部棋子」的围捕解（见 findFullSquadSolutionDetailed）。
+ * 薄包装：找到解返回落点，无解或预算耗尽都返回 null。
+ *
+ * 搜索带节点预算，超预算按「未找到解」处理，避免坏关卡把测试挂死。
+ */
+export function findFullSquadSolution(
+    pieces: readonly SolverPiece[],
+    gridSize: number,
+    thief: Coord,
+    blocked: readonly Coord[],
+    nodeBudget: number = SOLVER_NODE_BUDGET,
+): readonly PlacedPiece[] | null {
+    const result = findFullSquadSolutionDetailed(pieces, gridSize, thief, blocked, nodeBudget);
+    return result.status === 'solved' ? result.solution : null;
 }
 
 /** 把搜索里的落点换算成参考解条目 */
@@ -233,7 +288,7 @@ export function canCaptureUsingAllPieces(
     gridSize: number,
     thief: Coord,
     blocked: readonly Coord[],
-    nodeBudget = 300_000,
+    nodeBudget: number = SOLVER_NODE_BUDGET,
 ): boolean {
     return findFullSquadSolution(pieces, gridSize, thief, blocked, nodeBudget) !== null;
 }

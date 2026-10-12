@@ -13,6 +13,8 @@ type HistoryEntry = Readonly<{
     pieceId: string;
     /** null 表示该棋子上一步还在托盘里 */
     prev: PiecePlacement | null;
+    /** prev 为 null 时，记录操作前该棋子在托盘里的朝向，撤销时恢复 */
+    prevTrayRotation?: Rotation;
 }>;
 
 /**
@@ -89,7 +91,13 @@ export class GameSession {
         return buildOccupancy(entries);
     }
 
+    /** 建筑等非警察棋子不参与放置，直接判定为非法 */
+    private isPolice(pieceId: string): boolean {
+        return this.requirePiece(pieceId).type === PieceType.Police;
+    }
+
     canPlaceAt(pieceId: string, anchor: Coord, rotation?: Rotation): boolean {
+        if (!this.isPolice(pieceId)) return false;
         const ignore = this.placements.has(pieceId) ? pieceId : undefined;
         return canPlace({
             gridSize: this.gridSize,
@@ -101,16 +109,19 @@ export class GameSession {
 
     /** 落子：成功返回 true。已上场的棋子挪位不增加在场数 */
     place(pieceId: string, anchor: Coord, rotation?: Rotation): boolean {
+        if (!this.isPolice(pieceId)) return false;
         if (!this.canPlaceAt(pieceId, anchor, rotation)) return false;
         const prev = this.placements.get(pieceId) ?? null;
-        const placedRotation = rotation ?? this.getRotation(pieceId);
+        const prevTrayRotation = this.getRotation(pieceId);
+        const placedRotation = rotation ?? prevTrayRotation;
         // 原地放回：位置与朝向都没变，不必记入撤销历史
         if (prev && prev.anchor.x === anchor.x && prev.anchor.y === anchor.y && prev.rotation === placedRotation) {
             return true;
         }
         this.placements.set(pieceId, { anchor, rotation: placedRotation });
         this.rotations.set(pieceId, placedRotation);
-        this.history.push({ pieceId, prev });
+        // prev 为 null（从托盘落子）时记下放置前的托盘朝向，撤销时原样恢复
+        this.history.push(prev ? { pieceId, prev } : { pieceId, prev, prevTrayRotation });
         return true;
     }
 
@@ -119,6 +130,7 @@ export class GameSession {
      * 保留当前朝向——玩家多半要换个位置再摆，不必重新转向；撤销可原样放回。
      */
     remove(pieceId: string): boolean {
+        if (!this.isPolice(pieceId)) return false;
         const prev = this.placements.get(pieceId) ?? null;
         if (!prev) return false;
         this.placements.delete(pieceId);
@@ -127,6 +139,7 @@ export class GameSession {
     }
 
     canRotate(pieceId: string): boolean {
+        if (!this.isPolice(pieceId)) return false;
         const placement = this.placements.get(pieceId);
         if (!placement) return false;
         return this.canPlaceAt(pieceId, placement.anchor, nextRotation(placement.rotation));
@@ -134,9 +147,12 @@ export class GameSession {
 
     /** 原地顺时针旋转，返回是否成功 */
     rotate(pieceId: string): boolean {
+        if (!this.isPolice(pieceId)) return false;
         const placement = this.placements.get(pieceId);
         if (!placement || !this.canRotate(pieceId)) return false;
         const rotation = nextRotation(placement.rotation);
+        // 记下旋转前的完整落点：撤销时原地不动，只回退朝向
+        this.history.push({ pieceId, prev: { anchor: placement.anchor, rotation: placement.rotation } });
         this.placements.set(pieceId, { anchor: placement.anchor, rotation });
         this.rotations.set(pieceId, rotation);
         return true;
@@ -150,11 +166,15 @@ export class GameSession {
         if (this.placements.has(pieceId)) return false;
         const piece = this.requirePiece(pieceId);
         if (piece.type !== PieceType.Police) return false;
-        this.rotations.set(pieceId, nextRotation(this.getRotation(pieceId)));
+        const prevRotation = this.getRotation(pieceId);
+        const rotation = nextRotation(prevRotation);
+        // 棋子在托盘：prev=null，并记录转向之前的托盘朝向供撤销恢复
+        this.history.push({ pieceId, prev: null, prevTrayRotation: prevRotation });
+        this.rotations.set(pieceId, rotation);
         return true;
     }
 
-    /** 撤销上一步放置/移动，返回是否执行了撤销 */
+    /** 撤销上一步放置/移动/旋转/撤下/托盘预转向，返回是否执行了撤销 */
     undo(): boolean {
         const last = this.history.pop();
         if (!last) return false;
@@ -162,9 +182,10 @@ export class GameSession {
             this.placements.set(last.pieceId, last.prev);
             this.rotations.set(last.pieceId, last.prev.rotation);
         } else {
-            // 退回托盘：旋转一并恢复为棋子初始朝向
+            // 退回托盘：恢复操作前记录的托盘朝向；旧条目没有记录时回退初始朝向
             this.placements.delete(last.pieceId);
-            this.rotations.set(last.pieceId, this.requirePiece(last.pieceId).rotation);
+            const trayRotation = last.prevTrayRotation ?? this.requirePiece(last.pieceId).rotation;
+            this.rotations.set(last.pieceId, trayRotation);
         }
         return true;
     }

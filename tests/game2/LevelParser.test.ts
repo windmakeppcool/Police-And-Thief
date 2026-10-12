@@ -210,6 +210,43 @@ describe("结构校验", () => {
         expect(errors.some(e => e.includes("(9, 1)"))).toBe(true);
         expect(errors.some(e => e.includes("(6, 1)"))).toBe(false);
     });
+
+    it("thief 形状合法但坐标越界时报阶段二的棋盘范围错误", () => {
+        // x=6 是整数坐标对象，能过阶段一的形状校验，但超出 0..5
+        const errors = parseErrors({ ...baseLevel(), thief: { x: 6, y: 1 } });
+        expect(errors.some(e => e.startsWith("thief:") && e.includes("(6, 1)") && e.includes("超出棋盘范围"))).toBe(true);
+    });
+
+    it("顶层不是 JSON 对象时直接报错", () => {
+        expect(parseErrors(null)).toEqual(["关卡数据必须是 JSON 对象"]);
+        expect(parseErrors(42)).toEqual(["关卡数据必须是 JSON 对象"]);
+        expect(parseErrors([{ ...baseLevel() }])).toEqual(["关卡数据必须是 JSON 对象"]);
+    });
+
+    it("buildings 里的非对象元素逐个报必须是对象", () => {
+        const errors = parseErrors({ ...baseLevel(), buildings: [42, null, "x"] });
+        expect(errors.some(e => e === "buildings[0]: 必须是对象")).toBe(true);
+        expect(errors.some(e => e === "buildings[1]: 必须是对象")).toBe(true);
+        expect(errors.some(e => e === "buildings[2]: 必须是对象")).toBe(true);
+    });
+
+    it("gridSize 非法时不连带报出依赖坐标换算的阶段二几何错误", () => {
+        // gridSize=5 形状非法：阶段二整体跳过，
+        // 不应出现 thief/anchor 越界或建筑展开格子越界这类几何错误
+        const errors = parseErrors({
+            id: "level_test",
+            gridSize: 5,
+            thief: { x: 6, y: 1 },
+            buildings: [
+                { pieceId: "Structure-001", anchor: { x: 9, y: 1 }, rotation: 0 },
+                { pieceId: "Structure-001", anchor: { x: 5, y: 0 }, rotation: 0 },
+            ],
+        });
+        expect(errors.some(e => e.startsWith("gridSize:"))).toBe(true);
+        expect(errors.some(e => e.includes("超出棋盘范围"))).toBe(false);
+        expect(errors.some(e => e.includes("压住了小偷"))).toBe(false);
+        expect(errors.some(e => e.includes("重叠"))).toBe(false);
+    });
 });
 
 describe("几何校验", () => {

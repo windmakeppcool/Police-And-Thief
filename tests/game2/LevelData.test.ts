@@ -5,7 +5,7 @@ import { pieceCells, toAbsoluteCells } from "../../assets/GScript/game/rules/Pie
 import { thiefExits } from "../../assets/GScript/game/rules/WinCondition";
 import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
 import { enumeratePlacements, minMovesToCapture } from "./helpers/levelSolver";
-import { LEVEL_01_SOLUTION, loadLevelFile } from "./helpers/levelFixtures";
+import { LEVEL_01_SOLUTION, POLICE_ONLY_PIECES, loadLevelFile } from "./helpers/levelFixtures";
 
 const level = loadLevelFile("level_01");
 
@@ -50,7 +50,8 @@ describe("关卡数据 level_01", () => {
             const piece = BoardPieces[building.pieceId];
             return toAbsoluteCells(pieceCells(piece, building.rotation), building.anchor);
         });
-        const solverPieces = enumeratePlacements(BoardPieces, gridSize, thief);
+        // 建筑是固定路障，最少步数只统计玩家可落的警察棋子
+        const solverPieces = enumeratePlacements(POLICE_ONLY_PIECES, gridSize, thief);
 
         expect(minMovesToCapture(solverPieces, gridSize, thief, blocked, 1)).toBeNull();
         expect(minMovesToCapture(solverPieces, gridSize, thief, blocked, 2)).toBe(2);

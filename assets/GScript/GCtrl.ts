@@ -1,4 +1,5 @@
 import { _decorator, Canvas, Component } from 'cc';
+import { AudioManager } from './core/audio/AudioManager';
 import { UIManager } from './core/ui/UIManager';
 import { ResManager } from './core/res/ResManager';
 import { PrefabsCfg } from './auto/PrefabCfg';
@@ -18,6 +19,13 @@ export class GCtrl extends Component {
     readonly res = new ResManager();
     readonly loginCtr = new LoginCtrl();
     readonly platform: PlatformAdapter = createPlatformAdapter();
+
+    /** 音频管理器单例：首次访问时再创建（构造时需要 Canvas 已在场景中） */
+    private m_Audio: AudioManager | null = null;
+    get audio(): AudioManager {
+        if (!this.m_Audio) this.m_Audio = AudioManager.getInstance();
+        return this.m_Audio;
+    }
 
     async init(params: {
         canvas2d: Canvas,

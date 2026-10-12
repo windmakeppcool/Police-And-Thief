@@ -1,4 +1,6 @@
 import { Color, Mask, Node, ScrollView, Vec3 } from 'cc';
+import { ProgressStore } from '../ProgressStore';
+import { AudioManager } from '../../core/audio/AudioManager';
 import { DesignFrames, PocketPalette } from './DesignAssets';
 import {
     box, boxSize, labelInBox, localBox, localIcon, localLabel, makeButton, type MenuMetrics,
@@ -65,22 +67,32 @@ export class SettingsView {
         localIcon(g1, m, 'SoundIcon', frames.sound, VIEW_W, GROUP1_H, 30, 36, 23);
         localLabel(g1, m, 'SoundText', '游戏音效', 13, VIEW_W, GROUP1_H,
             { x: 48, y: 20, w: 140, h: 32 }, { color: PocketPalette.ink });
-        this.buildSwitch(g1, 300, 12, true);
+        // 音效开关：持久化到本机进度，并同步给 AudioManager 即时静音/恢复
+        this.buildSwitch(g1, 300, 12, ProgressStore.getSound(), (on) => {
+            ProgressStore.setSound(on);
+            AudioManager.getInstance().setSoundEnabled(on);
+        });
 
+        // 音量仅展示当前存档值，进度条不支持拖动调节
+        const volume = ProgressStore.getVolume();
         localLabel(g1, m, 'VolumeText', '音效音量', 12, VIEW_W, GROUP1_H,
             { x: 16, y: 82, w: 120, h: 24 }, { color: PocketPalette.ink });
-        localLabel(g1, m, 'VolumeValue', '65%', 11, VIEW_W, GROUP1_H,
+        localLabel(g1, m, 'VolumeValue', `${Math.round(volume * 100)}%`, 11, VIEW_W, GROUP1_H,
             { x: VIEW_W - 90, y: 82, w: 74, h: 24 }, { color: new Color(116, 146, 120, 255) });
         const volTrack = localBox('VolumeTrack', g1, m, VIEW_W, GROUP1_H, 16, 120, VIEW_W - 32, 8);
         addSprite(volTrack, frames.progressTrack, { size: boxSize(m, VIEW_W - 32, 8), sliced: true });
-        const volFill = localBox('VolumeFill', g1, m, VIEW_W, GROUP1_H, 16, 120, (VIEW_W - 32) * 0.65, 8);
-        addSprite(volFill, frames.progressFill, { size: boxSize(m, (VIEW_W - 32) * 0.65, 8), sliced: true });
+        const volFillW = (VIEW_W - 32) * volume;
+        const volFill = localBox('VolumeFill', g1, m, VIEW_W, GROUP1_H, 16, 120, volFillW, 8);
+        addSprite(volFill, frames.progressFill, { size: boxSize(m, volFillW, 8), sliced: true });
 
         localLabel(g1, m, 'HapticsText', '轻触反馈', 13, VIEW_W, GROUP1_H,
             { x: 16, y: 150, w: 160, h: 24 }, { color: PocketPalette.ink });
         localLabel(g1, m, 'HapticsSub', '设备支持时，给予轻微振动', 9, VIEW_W, GROUP1_H,
             { x: 16, y: 176, w: 220, h: 16 }, { color: new Color(132, 145, 123, 255) });
-        this.buildSwitch(g1, 300, 158, true);
+        // 振动开关：先持久化到本机进度，真实振动能力等平台适配接入
+        this.buildSwitch(g1, 300, 158, ProgressStore.getVibrate(), (on) => {
+            ProgressStore.setVibrate(on);
+        });
 
         // 分组二：关于与约定
         localLabel(content, m, 'Label2', '关于与约定', 11, VIEW_W, CONTENT_H,
@@ -114,18 +126,19 @@ export class SettingsView {
             { normal: frames.btnPrimary, pressed: frames.btnPrimaryPressed, color: PocketPalette.orange, sliced: true });
         localLabel(done.node, m, 'DoneText', '设置好了，回小镇', 18, 366, 58,
             { x: 0, y: 0, w: 366, h: 58 }, { color: PocketPalette.whiteish, bold: true });
+        done.node.on(Node.EventType.TOUCH_END, cb.onBack);
     }
 
-    /** 开关：底板 switchOn/Off + 白色圆点（点击切换，仅视觉态）。坐标相对父分组局部左上角 */
-    private buildSwitch(parent: Node, x: number, y: number, initial: boolean): void {
+    /** 开关：底板 switchOn/Off + 白色圆点（点击切换视觉态，并把新状态回调给业务层）。坐标相对父分组局部左上角 */
+    private buildSwitch(parent: Node, x: number, y: number, initial: boolean, onChange: (on: boolean) => void): void {
         const node = localBox('Switch', parent, this.m, VIEW_W, GROUP1_H, x, y, 56, 48);
         const sprite = addSprite(node, initial ? this.frames.switchOn : this.frames.switchOff,
             { size: boxSize(this.m, 56, 48) });
+        let on = initial;
         node.on(Node.EventType.TOUCH_END, () => {
-            // 仅切换视觉，音效/振动等真实开关随平台设置接入
-            sprite.spriteFrame = sprite.spriteFrame === this.frames.switchOn
-                ? this.frames.switchOff
-                : this.frames.switchOn;
+            on = !on;
+            sprite.spriteFrame = on ? this.frames.switchOn : this.frames.switchOff;
+            onChange(on);
         });
     }
 }

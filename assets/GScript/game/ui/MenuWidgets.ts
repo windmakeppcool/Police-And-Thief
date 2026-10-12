@@ -150,6 +150,8 @@ export function makeButton(
     node.on(Node.EventType.TOUCH_START, pressDown);
     node.on(Node.EventType.TOUCH_END, release);
     node.on(Node.EventType.TOUCH_CANCEL, release);
+    // 只在节点内松手时响按键音；滑出/取消（TOUCH_CANCEL）不响，音效未预加载时 playSfx 安全跳过
+    node.on(Node.EventType.TOUCH_END, () => gCtrl?.audio.playSfx('button'));
     return { node, sprite };
 }
 

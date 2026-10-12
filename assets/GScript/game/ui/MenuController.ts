@@ -1,10 +1,13 @@
 import { _decorator, Component, Node, UITransform, Vec3 } from 'cc';
 import { EViewLayer } from '../../core/ui/EViewLayer';
 import { G_VIEW_SIZE } from '../../core/ui/UIManager';
+import { AudioManager } from '../../core/audio/AudioManager';
 import { GameController } from '../GameController';
 import { selectLevel } from '../level/LevelSelection';
+import { getLevelIds } from '../level/LevelCatalog';
 import { loadLevelIndex } from '../LevelRepository';
-import { DesignFrames, loadDesignFrames, PocketPalette } from './DesignAssets';
+import { ProgressStore } from '../ProgressStore';
+import { DesignFrames, loadDesignFrames, PocketPalette, SfxAssetPaths } from './DesignAssets';
 import { LevelsView } from './LevelsView';
 import { MenuBootView } from './MenuBootView';
 import { MenuHomeView } from './MenuHomeView';
@@ -48,7 +51,21 @@ export class MenuController extends Component {
         this.stage = createNode('MenuStage', this.node,
             { width: this.m.width, height: this.m.height }, new Vec3(0, 0, 0));
         this.frames = await loadDesignFrames();
+        if (!this.isValid || !this.node.isValid) return;
         this.levelIds = await loadLevelIndex();
+        if (!this.isValid || !this.node.isValid) return;
+        // 渲染菜单数据前先加载本机进度（通关数/设置）
+        await ProgressStore.load();
+        if (!this.isValid || !this.node.isValid) return;
+        // 把存档里的音效开关/音量同步给音频管理器（登录音乐可能已在播放）
+        const audio = AudioManager.getInstance();
+        audio.setVolume(ProgressStore.getVolume());
+        audio.setSoundEnabled(ProgressStore.getSound());
+        // 预加载短音效：AudioManager 按 key 去重，重复进入菜单不会重复加载；
+        // 不阻塞开机动画，未加载完成前 playSfx 是安全 no-op
+        void audio.preloadSfx(Object.entries(SfxAssetPaths).map(([key, bUrl]) => ({ key, bUrl }))).catch((err) => {
+            console.error('[MenuController] 音效预加载异常', err);
+        });
 
         // 宽屏设备上 414×820 stage 两侧露出的区域用底色填满，避免黑边
         const backdrop = createNode('Backdrop', this.node,
@@ -81,8 +98,8 @@ export class MenuController extends Component {
             this.boot.node.destroy();
             this.boot = null;
         }
-        this.home = new MenuHomeView(this.stage, this.m, this.frames, 128, this.levelIds.length, {
-            onStart: () => this.openLevel(this.levelIds[0]),
+        this.home = new MenuHomeView(this.stage, this.m, this.frames, {
+            onStart: () => this.openLevel(this.nextLevelId()),
             onLevels: () => this.openLevels(),
             onNavMenu: () => this.openMenu(),
             onNavSettings: () => this.openSettings(),
@@ -94,14 +111,21 @@ export class MenuController extends Component {
         // 回到主菜单：销毁其它子页
         this.clearSubPages();
         if (!this.home) {
-            this.home = new MenuHomeView(this.stage, this.m, this.frames, 128, this.levelIds.length, {
-                onStart: () => this.openLevel(this.levelIds[0]),
+            this.home = new MenuHomeView(this.stage, this.m, this.frames, {
+                onStart: () => this.openLevel(this.nextLevelId()),
                 onLevels: () => this.openLevels(),
                 onNavMenu: () => this.openMenu(),
                 onNavSettings: () => this.openSettings(),
                 onNavProfile: () => this.openProfile(),
             });
         }
+    }
+
+    /** 推荐的下一关：第 clearedCount+1 关；全部通关后回退到第一关 */
+    private nextLevelId(): string | undefined {
+        const ids = getLevelIds();
+        const index = Math.min(ProgressStore.clearedCount, ids.length - 1);
+        return ids[index];
     }
 
     /** 打开指定关卡的对局；没有可用关卡时只报错，不跳转 */
@@ -111,7 +135,10 @@ export class MenuController extends Component {
             return;
         }
         selectLevel(levelId);
-        void gCtrl.ui.open(GameController);
+        // 进入对局后销毁菜单节点，避免菜单层层堆叠
+        void gCtrl.ui.open(GameController)
+            .then(() => this.node.destroy())
+            .catch(err => console.error('[MenuController] 进入对局失败', err));
     }
 
     private openLevels(): void {
@@ -120,10 +147,16 @@ export class MenuController extends Component {
             this.home.node.destroy();
             this.home = null;
         }
-        this.levels = new LevelsView(this.stage, this.m, this.frames, 128, this.levelIds.length, {
+        this.levels = new LevelsView(this.stage, this.m, this.frames,
+            ProgressStore.clearedCount,
+            Math.min(ProgressStore.clearedCount + 1, this.levelIds.length), {
             onBack: () => this.openMenu(),
             // 「继续巡逻」沿用当前选中的关卡，不改选择
-            onContinue: () => { void gCtrl.ui.open(GameController); },
+            onContinue: () => {
+                void gCtrl.ui.open(GameController)
+                    .then(() => this.node.destroy())
+                    .catch(err => console.error('[MenuController] 继续巡逻失败', err));
+            },
             onPick: (level: number) => this.openLevel(this.levelIds[level - 1]),
         });
     }
@@ -159,7 +192,11 @@ export class MenuController extends Component {
         this.profile = new ProfileView(this.stage, this.m, this.frames, {
             onBack: () => this.openMenu(),
             onSettings: () => this.openSettings(),
-            onPlay: () => { void gCtrl.ui.open(GameController); },
+            onPlay: () => {
+                void gCtrl.ui.open(GameController)
+                    .then(() => this.node.destroy())
+                    .catch(err => console.error('[MenuController] 再来一局失败', err));
+            },
             onLevels: () => this.openLevels(),
         });
     }

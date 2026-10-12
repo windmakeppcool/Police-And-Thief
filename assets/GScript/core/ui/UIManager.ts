@@ -31,6 +31,8 @@ function adapterScreen() {
 export class UIManager {
     private m_Canvas: Canvas = null!;
     private m_Layers: MyLayer[] = [];
+    /** 已打开 UI 登记：类名 -> 节点；节点销毁时自动移除 */
+    private readonly m_Opened = new Map<string, Node>();
 
     init(canvas2d: Canvas) {
         this.m_Canvas = canvas2d;
@@ -44,6 +46,11 @@ export class UIManager {
         return this.m_Layers[layer].node;
     }
 
+    /** 该组件当前是否有已打开（尚未销毁）的实例 */
+    isOpened<UI extends Component>(uiClass: Constructor<UI>): boolean {
+        return this.m_Opened.has(uiClass.name);
+    }
+
     async open<UI extends Component>(uiClass: Constructor<UI> & { readonly viewLayer: EViewLayer; }): Promise<UI> {
         const viewLayer: EViewLayer = typeof (uiClass.viewLayer) == 'number' ? uiClass.viewLayer : EViewLayer.UI;
         const resLoader = new ResLoader();
@@ -51,6 +58,14 @@ export class UIManager {
         await resLoader.load();
         let ui = this.instantiate(uiClass);
         this.m_Layers[viewLayer].node.addChild(ui.node);
+        const uiNode = ui.node;
+        this.m_Opened.set(uiClass.name, uiNode);
+        // 节点被销毁时自动移除登记（包括重复进入场景等路径）
+        uiNode.once(Node.EventType.NODE_DESTROYED, () => {
+            if (this.m_Opened.get(uiClass.name) === uiNode) {
+                this.m_Opened.delete(uiClass.name);
+            }
+        });
         const uiTransform = ui.node.getComponent(UITransform);
         if (uiTransform) {
             uiTransform.setContentSize(G_VIEW_SIZE.clone());

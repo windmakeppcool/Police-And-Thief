@@ -14,6 +14,13 @@ export const Metrics = {
     margin: 16,
     topMargin: 12,
     bottomMargin: 12,
+    /**
+     * 触摸位移阈值（逻辑像素）：移动不超过该距离视为点击，超过视为拖拽/滚动。
+     * DraggablePiece 的起拖判定与 LevelsView 的滚动/点击区分共用此常量，两处必须保持同口径。
+     */
+    touchMoveTolerance: 8,
+    /** 引导气泡相对锚点向上的抬升量，避免遮住被引导的棋子/托盘 */
+    coachLiftY: 60,
 };
 
 export type GameLayout = Readonly<{

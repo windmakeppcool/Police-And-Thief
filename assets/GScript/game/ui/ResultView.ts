@@ -1,4 +1,4 @@
-import { Color, Mask, Node, ScrollView, Vec3 } from 'cc';
+import { Color, Mask, Node, ScrollView, UIOpacity, Vec3 } from 'cc';
 import { DesignFrames, PocketPalette } from './DesignAssets';
 import {
     box, boxSize, labelInBox, localBox, localIcon, localLabel, makeButton, type MenuMetrics,
@@ -10,6 +10,15 @@ export type ResultCallbacks = {
     onReplay: () => void;
     onShare: () => void;
     onMenu: () => void;
+};
+
+export type ResultOptions = {
+    /** 关卡序号（从 1 开始），默认 1 */
+    levelIndex?: number;
+    /** 本局实际部署步数；为 null 时不展示步数统计 */
+    moves?: number | null;
+    /** 是否还有下一关；false 时下一关按钮置灰并屏蔽触摸 */
+    hasNext?: boolean;
 };
 
 const VIEW_W = 364;
@@ -34,7 +43,11 @@ export class ResultView {
         private readonly m: MenuMetrics,
         private readonly frames: DesignFrames,
         cb: ResultCallbacks,
+        options: ResultOptions = {},
     ) {
+        const levelIndex = options.levelIndex ?? 1;
+        const moves = options.moves ?? null;
+        const hasNext = options.hasNext ?? true;
         this.node = box('ResultPage', parent, m, 0, 0, 414, 820);
         const bg = box('ResultBg', this.node, m, 0, 0, 414, 820);
         addSprite(bg, frames.solid, { size: boxSize(m, 414, 820), color: new Color(244, 248, 236, 255) });
@@ -42,7 +55,7 @@ export class ResultView {
         // ── 顶部报告栏 ──
         labelInBox(this.node, m, 'TopBrand', '巡逻报告', 13,
             { x: 24, y: 16, w: 160, h: 24 }, { color: PocketPalette.ink, bold: true });
-        labelInBox(this.node, m, 'TopLevel', '第 08 关', 10,
+        labelInBox(this.node, m, 'TopLevel', `第 ${String(levelIndex).padStart(2, '0')} 关`, 10,
             { x: 250, y: 18, w: 140, h: 22 }, { color: PocketPalette.mintDeep });
 
         // ── 可滚动内容（视口 60..656） ──
@@ -80,20 +93,28 @@ export class ResultView {
         addSprite(ticket, frames.cardTicket, { size: boxSize(m, VIEW_W, TICKET_H), sliced: true });
         localLabel(ticket, m, 'TicketCaption', '本次巡逻成绩单', 11, VIEW_W, TICKET_H,
             { x: 0, y: 18, w: VIEW_W, h: 16 }, { color: new Color(133, 144, 123, 255) });
+        // 分数与“分”单位无数据源（不记分），整块隐藏
         localLabel(ticket, m, 'TicketScore', '1,280', 46, VIEW_W, TICKET_H,
-            { x: 0, y: 40, w: VIEW_W - 40, h: 56 }, { color: new Color(220, 132, 89, 255), bold: true });
+            { x: 0, y: 40, w: VIEW_W - 40, h: 56 }, { color: new Color(220, 132, 89, 255), bold: true }).active = false;
         localLabel(ticket, m, 'TicketScoreUnit', '分', 12, VIEW_W, TICKET_H,
-            { x: VIEW_W - 46, y: 58, w: 30, h: 24 }, { color: new Color(220, 132, 89, 255) });
-        const stats = [
-            { label: '出动警队', value: '3 步', cx: VIEW_W / 4 },
-            { label: '行动用时', value: '00:42', cx: VIEW_W * 3 / 4 },
-        ];
-        stats.forEach((s, i) => {
-            localLabel(ticket, m, `TicketStatLabel_${i}`, s.label, 10, VIEW_W, TICKET_H,
-                { x: s.cx - 70, y: 116, w: 140, h: 14 }, { color: new Color(126, 139, 118, 255) });
-            localLabel(ticket, m, `TicketStatValue_${i}`, s.value, 17, VIEW_W, TICKET_H,
-                { x: s.cx - 70, y: 130, w: 140, h: 22 }, { color: PocketPalette.ink, bold: true });
-        });
+            { x: VIEW_W - 46, y: 58, w: 30, h: 24 }, { color: new Color(220, 132, 89, 255) }).active = false;
+        // 步数取本局真实 moveCount；拿不到数据源时该块隐藏
+        const stepCx = moves !== null ? VIEW_W / 2 : VIEW_W / 4;
+        const stepLabel = localLabel(ticket, m, 'TicketStatLabel_0', '出动警队', 10, VIEW_W, TICKET_H,
+            { x: stepCx - 70, y: 116, w: 140, h: 14 }, { color: new Color(126, 139, 118, 255) });
+        const stepValue = localLabel(ticket, m, 'TicketStatValue_0', moves !== null ? `${moves} 步` : '—', 17, VIEW_W, TICKET_H,
+            { x: stepCx - 70, y: 130, w: 140, h: 22 }, { color: PocketPalette.ink, bold: true });
+        if (moves === null) {
+            stepLabel.active = false;
+            stepValue.active = false;
+        }
+        // 行动用时统计无数据源，隐藏标签与数值
+        const timeLabel = localLabel(ticket, m, 'TicketStatLabel_1', '行动用时', 10, VIEW_W, TICKET_H,
+            { x: VIEW_W * 3 / 4 - 70, y: 116, w: 140, h: 14 }, { color: new Color(126, 139, 118, 255) });
+        const timeValue = localLabel(ticket, m, 'TicketStatValue_1', '00:42', 17, VIEW_W, TICKET_H,
+            { x: VIEW_W * 3 / 4 - 70, y: 130, w: 140, h: 22 }, { color: PocketPalette.ink, bold: true });
+        timeLabel.active = false;
+        timeValue.active = false;
 
         localLabel(content, m, 'Note', '下一站的小镇，正等着你！', 11, VIEW_W, CONTENT_H,
             { x: 0, y: NOTE_Y, w: VIEW_W, h: 18 }, { color: new Color(125, 141, 118, 255) });
@@ -110,10 +131,20 @@ export class ResultView {
         // ── 底部操作区（662..808） ──
         const next = makeButton(this.node, m, 'NextButton', 24, 666, 366, 56,
             { normal: frames.btnPrimary, pressed: frames.btnPrimaryPressed, color: PocketPalette.orange, sliced: true });
-        localLabel(next.node, m, 'NextText', '下一关，出发', 18, 366, 56,
+        localLabel(next.node, m, 'NextText', hasNext ? '下一关，出发' : '已全部通关', 18, 366, 56,
             { x: 0, y: 0, w: 300, h: 56 }, { color: PocketPalette.whiteish, bold: true });
         localIcon(next.node, m, 'NextArrow', frames.arrowWhite, 366, 56, 334, 28, 20);
-        next.node.on(Node.EventType.TOUCH_END, cb.onNext);
+        if (hasNext) {
+            next.node.on(Node.EventType.TOUCH_END, cb.onNext);
+        } else {
+            // 已是最后一关：置灰并屏蔽触摸（不再响应 press 与点击）
+            next.node.getComponent(UIOpacity) ?? next.node.addComponent(UIOpacity);
+            const nextOpacity = next.node.getComponent(UIOpacity)!;
+            nextOpacity.opacity = 120;
+            next.node.off(Node.EventType.TOUCH_START);
+            next.node.off(Node.EventType.TOUCH_END);
+            next.node.off(Node.EventType.TOUCH_CANCEL);
+        }
 
         const replay = makeButton(this.node, m, 'ReplayButton', 24, 730, 178, 48,
             { normal: frames.btnSecondary, sliced: true });

@@ -4,6 +4,8 @@ import {
     box, boxSize, buildStarCounter, labelInBox, localBox, localIcon, localLabel, makeButton, type MenuMetrics,
 } from './MenuWidgets';
 import { addSprite } from '../../core/ui/UIFactory';
+import { getLevelIds } from '../level/LevelCatalog';
+import { ProgressStore } from '../ProgressStore';
 
 export type MenuHomeCallbacks = {
     onStart: () => void;
@@ -21,10 +23,13 @@ export class MenuHomeView {
         parent: Node,
         private readonly m: MenuMetrics,
         private readonly frames: DesignFrames,
-        stars: number,
-        unlocked: number,
         cb: MenuHomeCallbacks,
     ) {
+        // 星数 = 已通关数（每关固定 1 星）；下一关序号为 clearedCount+1
+        const stars = ProgressStore.clearedCount;
+        const totalLevels = getLevelIds().length;
+        const nextIndex = stars + 1;
+        const nextText = nextIndex <= totalLevels ? `第 ${String(nextIndex).padStart(2, '0')} 关` : '全部通关';
         this.node = box('HomePage', parent, m, 0, 0, 414, 820);
 
         // 背景：上绿下奶油，近似设计稿纵向渐变 linear-gradient(180deg, #e4f0e5 → #e3efe2 → var(--cream))
@@ -62,7 +67,7 @@ export class MenuHomeView {
         // ── 下一站信息 ──
         labelInBox(this.node, m, 'NextEyebrow', '下一站，出发！', 9,
             { x: 25, y: 478, w: 200, h: 12 }, { color: PocketPalette.mintDeep, bold: true });
-        labelInBox(this.node, m, 'NextTitle', `第 08 关 · 薄荷街角`, 15,
+        labelInBox(this.node, m, 'NextTitle', nextText, 15,
             { x: 25, y: 492, w: 260, h: 22 }, { color: PocketPalette.ink, bold: true });
         const pill = box('DifficultyPill', this.node, m, 300, 484, 80, 30);
         addSprite(pill, frames.difficultyPill, { size: boxSize(m, 80, 30), sliced: true });
@@ -85,7 +90,7 @@ export class MenuHomeView {
         localIcon(levels.node, m, 'LevelsIcon', frames.grid, 366, 55, 22, 27, 21);
         localLabel(levels.node, m, 'LevelsText', '关卡选择', 14, 366, 55,
             { x: 40, y: 0, w: 120, h: 55 }, { color: PocketPalette.ink, bold: true });
-        localLabel(levels.node, m, 'LevelsDetail', `${unlocked} / 24`, 11, 366, 55,
+        localLabel(levels.node, m, 'LevelsDetail', `${stars} / ${totalLevels}`, 11, 366, 55,
             { x: 270, y: 0, w: 70, h: 55 }, { color: PocketPalette.muted });
         localIcon(levels.node, m, 'LevelsArrow', frames.arrow, 366, 55, 346, 27, 18);
         levels.node.on(Node.EventType.TOUCH_END, cb.onLevels);

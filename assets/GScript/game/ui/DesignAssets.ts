@@ -105,6 +105,23 @@ export const DesignAssetPaths = {
     heroTown: IMG('menu/hero_town'),
 } as const;
 
+/** GameBN 中以 Res/Audio/ 为根的短音效地址；WAV 由 tools/sfx-gen/generate_sfx.py 程序化生成 */
+const SFX = (name: string) => BL(`Res/Audio/sfx_${name}`, 'GameBN');
+
+/**
+ * 短音效清单：key 即 AudioManager.playSfx 的音效名，新增/替换音效改这一处即可。
+ * 产物名统一带 sfx_ 前缀（sfx_place.wav 等），与生成脚本输出保持一致。
+ */
+export const SfxAssetPaths = {
+    button: SFX('button'),
+    place: SFX('place'),
+    remove: SFX('remove'),
+    rotate: SFX('rotate'),
+    undo: SFX('undo'),
+    invalid: SFX('invalid'),
+    win: SFX('win'),
+} as const;
+
 /** 需要九宫格拉伸的素材：边框宽度按设计稿圆角取值 */
 const NINE_SLICE_INSETS: Partial<Record<keyof typeof DesignAssetPaths, number>> = {
     btnRound: 16,
@@ -142,8 +159,18 @@ const NINE_SLICE_INSETS: Partial<Record<keyof typeof DesignAssetPaths, number>> 
 export type DesignAssetKey = keyof typeof DesignAssetPaths;
 export type DesignFrames = Record<DesignAssetKey, SpriteFrame | null>;
 
+/**
+ * 设计稿素材刻意全局常驻：菜单/结算/对局页面反复打开都复用同一批 SpriteFrame，
+ * 因此进程内只在首次加载成功时 addRef 一次，之后 bundle 缓存命中不再重复 addRef。
+ */
+let framesRefed = false;
+
+/** 首次加载结果缓存，避免页面跳转后重复走 bundle.load（含重复 addRef） */
+let cachedFrames: DesignFrames | null = null;
+
 /** 一次性加载设计稿拆分出的全部精灵素材 */
 export async function loadDesignFrames(): Promise<DesignFrames> {
+    if (cachedFrames) return cachedFrames;
     const keys = Object.keys(DesignAssetPaths) as DesignAssetKey[];
     const frames = await Promise.all(keys.map(async key => {
         const frame = await gCtrl.res.loadAssetAsync(DesignAssetPaths[key], SpriteFrame);
@@ -153,10 +180,15 @@ export async function loadDesignFrames(): Promise<DesignFrames> {
         }
         const inset = NINE_SLICE_INSETS[key];
         if (inset) applyInsets(frame, inset);
-        frame.addRef();
         return frame;
     }));
     const result = {} as DesignFrames;
     keys.forEach((key, i) => { result[key] = frames[i]; });
+    // 全局常驻素材：只在首次加载成功后统一 addRef 一次，刻意不新增卸载时机
+    if (!framesRefed) {
+        for (const frame of frames) frame?.addRef();
+        framesRefed = true;
+    }
+    cachedFrames = result;
     return result;
 }

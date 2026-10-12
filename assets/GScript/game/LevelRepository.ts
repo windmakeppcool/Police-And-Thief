@@ -2,6 +2,7 @@ import { JsonAsset } from 'cc';
 import { BL } from '../core/res/ResConst';
 import type { LevelData } from './common/GameTypes';
 import { LevelParseError, parseLevel, parseLevelIndex } from './level/LevelParser';
+import { setLevelIds } from './level/LevelCatalog';
 import { BoardPieces } from './piece/pieces';
 
 /** 关卡目录在 GameBN 里的地址：assets/Game/levels/levels.json */
@@ -27,7 +28,10 @@ export async function loadLevelIndex(): Promise<string[]> {
         return ['level_01'];
     }
     try {
-        return parseLevelIndex(asset.json);
+        const ids = parseLevelIndex(asset.json);
+        // 目录解析成功后注入纯状态，供菜单/结算读取关卡顺序
+        setLevelIds(ids);
+        return ids;
     } catch (e) {
         report(e, '[LevelRepository] 关卡目录解析异常');
         return ['level_01'];

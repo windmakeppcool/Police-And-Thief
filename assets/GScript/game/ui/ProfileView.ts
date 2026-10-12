@@ -1,4 +1,6 @@
-import { Color, Mask, Node, ScrollView, Vec3 } from 'cc';
+import { Color, Label, Mask, Node, ScrollView, Vec3 } from 'cc';
+import { getLevelIds } from '../level/LevelCatalog';
+import { ProgressStore } from '../ProgressStore';
 import { DesignFrames, PocketPalette } from './DesignAssets';
 import {
     box, boxSize, labelInBox, localBox, localIcon, localLabel, makeButton, type MenuMetrics,
@@ -82,17 +84,19 @@ export class ProfileView {
         localLabel(tag, m, 'TagText', '本机游客 · 无需登录', 10, 150, 26,
             { x: 0, y: 0, w: 150, h: 26 }, { color: new Color(120, 146, 115, 255) });
 
-        // 三项统计
+        // 三项统计（通关数 / 星星数 / 总关卡数；每关固定 1 星，故前两项相等）
         const stats = localBox('Stats', content, m, VIEW_W, CONTENT_H, 0, STATS_Y, VIEW_W, STATS_H);
         addSprite(stats, frames.solid, { size: boxSize(m, VIEW_W, STATS_H), color: new Color(255, 253, 242, 0) });
         const statData: { value: string; label: string; cx: number }[] = [
-            { value: '7', label: '已通关', cx: VIEW_W / 6 },
-            { value: '18', label: '收集星星', cx: VIEW_W / 2 },
-            { value: '1,280', label: '最高得分', cx: VIEW_W * 5 / 6 },
+            { value: `${ProgressStore.clearedCount}`, label: '已通关', cx: VIEW_W / 6 },
+            { value: `${ProgressStore.clearedCount}`, label: '收集星星', cx: VIEW_W / 2 },
+            { value: `${getLevelIds().length}`, label: '总关卡数', cx: VIEW_W * 5 / 6 },
         ];
+        const statValues: Label[] = [];
         statData.forEach((s, i) => {
-            localLabel(stats, m, `StatValue_${i}`, s.value, 26, VIEW_W, STATS_H,
+            const valueNode = localLabel(stats, m, `StatValue_${i}`, s.value, 26, VIEW_W, STATS_H,
                 { x: s.cx - 60, y: 14, w: 120, h: 32 }, { color: PocketPalette.ink, bold: true });
+            statValues.push(valueNode.getComponent(Label)!);
             localLabel(stats, m, `StatLabel_${i}`, s.label, 10, VIEW_W, STATS_H,
                 { x: s.cx - 60, y: 54, w: 120, h: 16 }, { color: new Color(130, 144, 120, 255) });
         });
@@ -120,6 +124,13 @@ export class ProfileView {
         localLabel(linkClear, m, 'LinkClearText', '清除本机游戏记录', 12, VIEW_W, 56,
             { x: 0, y: 0, w: 240, h: 56 }, { color: new Color(199, 100, 73, 255) });
         localIcon(linkClear, m, 'LinkReset', frames.reset, VIEW_W, 56, VIEW_W - 24, 28, 19);
+        // 清空本机通关/设置后，立即刷新三项统计
+        linkClear.on(Node.EventType.TOUCH_END, () => {
+            ProgressStore.clearAll();
+            statValues[0].string = `${ProgressStore.clearedCount}`;
+            statValues[1].string = `${ProgressStore.clearedCount}`;
+            statValues[2].string = `${getLevelIds().length}`;
+        });
 
         localLabel(content, m, 'Muted', '个人中心展示数据，不代表真实账号。', 10, VIEW_W, CONTENT_H,
             { x: 0, y: MUTED_Y, w: VIEW_W, h: 16 }, { color: PocketPalette.muted });

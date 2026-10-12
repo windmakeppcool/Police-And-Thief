@@ -1,4 +1,4 @@
-import { Label, Node, Vec3 } from 'cc';
+import { BlockInputEvents, Label, Node, UIOpacity, Vec3 } from 'cc';
 import { DesignFrames, PocketPalette } from './DesignAssets';
 import { GameLayout } from './Layout';
 import { addSprite, createLabel, createNode } from '../../core/ui/UIFactory';
@@ -67,6 +67,8 @@ export class GameOverlayView {
     readonly node: Node;
     private readonly startCard: Node;
     private readonly winCard: Node;
+    private readonly pauseCard: Node;
+    private readonly restartCard: Node;
     private readonly winText: Label;
     private readonly dim: Node;
 
@@ -76,17 +78,29 @@ export class GameOverlayView {
 
         this.dim = createNode('Dim', this.node, { width, height });
         addSprite(this.dim, frames.overlayDim, { size: { width, height } });
+        // 模态遮罩：弹层显示期间吞掉触摸，避免点穿到棋盘棋子（组件随节点 active 一起启停）
+        this.dim.addComponent(BlockInputEvents);
 
         this.startCard = this.buildStartCard();
         this.winCard = this.buildWinCard();
         this.winText = this.winCard.getChildByName('WinText')!.getComponent(Label)!;
+        this.pauseCard = this.buildPauseCard();
+        this.restartCard = this.buildRestartCard();
         this.winCard.active = false;
+        this.pauseCard.active = false;
+        this.restartCard.active = false;
         this.updateDim();
     }
 
     /** 遮罩只在有弹层显示时出现，避免常驻压暗画面 */
     private updateDim(): void {
-        this.dim.active = this.startCard.active || this.winCard.active;
+        this.dim.active = this.startCard.active || this.winCard.active
+            || this.pauseCard.active || this.restartCard.active;
+    }
+
+    /** 当前是否有模态弹层（暂停/重开确认等）压在棋盘上 */
+    get modalVisible(): boolean {
+        return this.pauseCard.active || this.restartCard.active;
     }
 
     private buildCard(name: string): Node {
@@ -125,14 +139,50 @@ export class GameOverlayView {
         return card;
     }
 
-    private createPrimaryButton(parent: Node, name: string, text: string, position: Vec3): Node {
-        const button = createNode(name, parent, { width: 230, height: 64 }, position);
-        const sprite = addSprite(button, this.frames.btnPrimary, { size: { width: 230, height: 64 }, sliced: true });
+    private createPrimaryButton(parent: Node, name: string, text: string, position: Vec3, size: { width: number; height: number } = { width: 230, height: 64 }): Node {
+        const button = createNode(name, parent, size, position);
+        const sprite = addSprite(button, this.frames.btnPrimary, { size, sliced: true });
         button.on(Node.EventType.TOUCH_START, () => { sprite.spriteFrame = this.frames.btnPrimaryPressed ?? sprite.spriteFrame; });
         button.on(Node.EventType.TOUCH_END, () => { sprite.spriteFrame = this.frames.btnPrimary ?? sprite.spriteFrame; });
         button.on(Node.EventType.TOUCH_CANCEL, () => { sprite.spriteFrame = this.frames.btnPrimary ?? sprite.spriteFrame; });
-        createLabel(button, `${name}Text`, text, 28, { color: PocketPalette.ink, bold: true, size: { width: 200, height: 64 } });
+        createLabel(button, `${name}Text`, text, 28, { color: PocketPalette.ink, bold: true, size: { width: size.width - 30, height: size.height } });
         return button;
+    }
+
+    /** 次级（描边浅底）按钮：按下轻微变暗，用于暂停/确认弹层里的非主操作 */
+    private createSecondaryButton(parent: Node, name: string, text: string, position: Vec3,
+        size: { width: number; height: number } = { width: 230, height: 52 }): Node {
+        const button = createNode(name, parent, size, position);
+        addSprite(button, this.frames.btnSecondary, { size, sliced: true });
+        const setOpacity = (value: number): void => {
+            const opacity = button.getComponent(UIOpacity) ?? button.addComponent(UIOpacity);
+            opacity.opacity = value;
+        };
+        button.on(Node.EventType.TOUCH_START, () => setOpacity(190));
+        button.on(Node.EventType.TOUCH_END, () => setOpacity(255));
+        button.on(Node.EventType.TOUCH_CANCEL, () => setOpacity(255));
+        createLabel(button, `${name}Text`, text, 24, { color: PocketPalette.ink, bold: true, size: { width: size.width - 30, height: size.height } });
+        return button;
+    }
+
+    private buildPauseCard(): Node {
+        const card = this.buildCard('PauseCard');
+        createLabel(card, 'PauseTitle', '暂停一下', 40, { color: PocketPalette.ink, bold: true }, new Vec3(0, 112, 0));
+        createLabel(card, 'PauseDesc', '小偷还在原地等你\n歇口气再继续巡逻吧', 18,
+            { color: PocketPalette.muted, size: { width: 320, height: 70 } }, new Vec3(0, 40, 0));
+        this.createPrimaryButton(card, 'ResumeButton', '继续游戏', new Vec3(0, -42, 0));
+        this.createSecondaryButton(card, 'PauseRestartButton', '重新开始', new Vec3(0, -112, 0));
+        this.createSecondaryButton(card, 'PauseExitButton', '返回小镇', new Vec3(0, -176, 0));
+        return card;
+    }
+
+    private buildRestartCard(): Node {
+        const card = createNode('RestartCard', this.node, { width: 360, height: 240 });
+        addSprite(card, this.frames.cardBg, { size: { width: 360, height: 240 }, sliced: true, color: PocketPalette.cream });
+        createLabel(card, 'RestartTitle', '要重新摆这一关吗？', 26, { color: PocketPalette.ink, bold: true }, new Vec3(0, 72, 0));
+        this.createSecondaryButton(card, 'RestartCancelButton', '再想想', new Vec3(-84, -22, 0), { width: 156, height: 52 });
+        this.createPrimaryButton(card, 'RestartConfirmButton', '重新开始', new Vec3(84, -22, 0), { width: 156, height: 52 });
+        return card;
     }
 
     bindStart(onStart: () => void): void {
@@ -145,6 +195,47 @@ export class GameOverlayView {
 
     bindReport(onReport: () => void): void {
         this.winCard.getChildByName('ReportButton')!.on(Node.EventType.TOUCH_END, onReport, this);
+    }
+
+    bindPauseResume(onResume: () => void): void {
+        this.pauseCard.getChildByName('ResumeButton')!.on(Node.EventType.TOUCH_END, onResume, this);
+    }
+
+    bindPauseRestart(onRestart: () => void): void {
+        this.pauseCard.getChildByName('PauseRestartButton')!.on(Node.EventType.TOUCH_END, onRestart, this);
+    }
+
+    bindPauseExit(onExit: () => void): void {
+        this.pauseCard.getChildByName('PauseExitButton')!.on(Node.EventType.TOUCH_END, onExit, this);
+    }
+
+    showPause(): void {
+        this.pauseCard.active = true;
+        this.updateDim();
+    }
+
+    hidePause(): void {
+        this.pauseCard.active = false;
+        this.updateDim();
+    }
+
+    bindRestartConfirm(onConfirm: () => void): void {
+        this.restartCard.getChildByName('RestartConfirmButton')!.on(Node.EventType.TOUCH_END, onConfirm, this);
+    }
+
+    bindRestartCancel(onCancel: () => void): void {
+        this.restartCard.getChildByName('RestartCancelButton')!.on(Node.EventType.TOUCH_END, onCancel, this);
+    }
+
+    /** HUD 重开按钮的二次确认小弹层 */
+    showRestartConfirm(): void {
+        this.restartCard.active = true;
+        this.updateDim();
+    }
+
+    hideRestartConfirm(): void {
+        this.restartCard.active = false;
+        this.updateDim();
     }
 
     showStart(): void {

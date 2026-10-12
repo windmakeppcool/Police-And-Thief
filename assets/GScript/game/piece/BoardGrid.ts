@@ -1,4 +1,4 @@
-import { _decorator, Component, Node, Sprite, SpriteFrame, tween, Vec3 } from 'cc';
+import { _decorator, Component, Node, Sprite, SpriteFrame, Tween, tween, Vec3 } from 'cc';
 import { EViewLayer } from '../../core/ui/EViewLayer';
 import { GameSession } from '../common/GameSession';
 import { Coord } from '../common/GameTypes';
@@ -17,6 +17,7 @@ export class BoardGrid extends Component {
     private _gridSize = 6;
     private frames: DesignFrames | null = null;
     private cellNodes: Node[] = [];
+    /** 落点预览节点池：最多覆盖一枚棋子的格子数（懒创建、复用，不主动销毁） */
     private ghostNodes: Node[] = [];
     private thiefNode: Node | null = null;
     private thiefFrames: SpriteFrame[] = [];
@@ -98,24 +99,33 @@ export class BoardGrid extends Component {
         this.cellNodes.push(node);
     }
 
-    /** 落点预览：合法/非法使用不同贴图 */
+    /** 落点预览：合法/非法使用不同贴图；预览节点走节点池复用，不在拖拽中反复创建/销毁 */
     showGhost(cells: readonly Coord[], valid: boolean): void {
-        this.clearGhost();
+        for (const node of this.ghostNodes) node.active = false;
         const frame = (valid ? this.frames?.ghostValid : this.frames?.ghostInvalid) ?? null;
+        let used = 0;
         for (const coord of cells) {
             if (!this.isValidCoord(coord)) continue;
-            const node = createNode(`Ghost_${coord.x}_${coord.y}`, this.node,
-                { width: this._cellSize, height: this._cellSize }, this.cellToLocal(coord));
-            addSprite(node, frame, { size: { width: this._cellSize, height: this._cellSize } });
-            this.ghostNodes.push(node);
+            let node = this.ghostNodes[used];
+            if (!node || !node.isValid) {
+                node = createNode(`Ghost_${used}`, this.node,
+                    { width: this._cellSize, height: this._cellSize });
+                addSprite(node, frame, { size: { width: this._cellSize, height: this._cellSize } });
+                this.ghostNodes[used] = node;
+            }
+            const sprite = node.getComponent(Sprite);
+            if (sprite && sprite.spriteFrame !== frame) sprite.spriteFrame = frame;
+            node.setPosition(this.cellToLocal(coord));
+            node.active = true;
+            used++;
         }
     }
 
     clearGhost(): void {
+        // 只隐藏不销毁：节点保留在棋盘节点下复用，随父节点生命周期一起释放
         for (const node of this.ghostNodes) {
-            if (node.isValid) node.destroy();
+            if (node.isValid) node.active = false;
         }
-        this.ghostNodes = [];
     }
 
     /** 小偷东张西望：循环播放警惕帧 */
@@ -132,6 +142,9 @@ export class BoardGrid extends Component {
         this.thiefCaught = false;
         this.peekStep = 0;
         if (!this.thiefNode?.isValid) return;
+        // 先停掉抓捕缩放动画再复位，避免旧 tween 把 scale 拉回中间值造成回跳
+        Tween.stopAllByTarget(this.thiefNode);
+        this.thiefNode.setScale(1, 1, 1);
         const sprite = this.thiefNode.getComponent(Sprite);
         if (sprite) sprite.spriteFrame = this.thiefFrames[0] ?? sprite.spriteFrame;
     }
@@ -142,6 +155,8 @@ export class BoardGrid extends Component {
         if (!this.thiefNode?.isValid) return;
         const sprite = this.thiefNode.getComponent(Sprite);
         if (sprite) sprite.spriteFrame = this.thiefFrames[0] ?? sprite.spriteFrame;
+        // 重复触发时先停旧动画，避免多个缩放 tween 同时作用在同一节点上
+        Tween.stopAllByTarget(this.thiefNode);
         tween(this.thiefNode)
             .to(0.16, { scale: new Vec3(1.25, 1.25, 1) })
             .to(0.24, { scale: new Vec3(1, 1, 1) })

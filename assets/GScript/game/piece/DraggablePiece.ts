@@ -1,4 +1,4 @@
-import { _decorator, Component, EventTouch, input, Input, Node, Sprite, SpriteFrame, tween, UITransform, Vec3 } from 'cc';
+import { _decorator, Component, EventTouch, input, Input, Node, Sprite, SpriteFrame, Tween, tween, UITransform, Vec3 } from 'cc';
 import { GameSession } from '../common/GameSession';
 import type { Coord, Piece, Rotation } from '../common/GameTypes';
 import { isInBoard } from '../rules/PlacementValidator';
@@ -13,6 +13,8 @@ export type PieceCallbacks = {
     rotate: (pieceId: string) => boolean;
     /** 请求把已上场的棋子撤回托盘，返回是否成功 */
     remove: (pieceId: string) => boolean;
+    /** 落点非法/转向被拒时的表现回调（如错误音效） */
+    illegal?: () => void;
 };
 
 export type PieceInitOptions = {
@@ -56,6 +58,8 @@ export class DraggablePiece extends Component {
 
     private interactable = false;
     private dragging = false;
+    /** 当前拖拽归属的触点 ID（多点触控下只响应发起拖拽的那根手指） */
+    private touchId: number | null = null;
     private moved = false;
     private readonly grabOffset = new Vec3();
     private readonly touchStart = new Vec3();
@@ -116,6 +120,8 @@ export class DraggablePiece extends Component {
         input.off(Input.EventType.TOUCH_MOVE, this.onTouchMove, this);
         input.off(Input.EventType.TOUCH_END, this.onTouchEnd, this);
         input.off(Input.EventType.TOUCH_CANCEL, this.onTouchCancel, this);
+        Tween.stopAllByTarget(this.node);
+        this.touchId = null;
         if (DraggablePiece.activePiece === this) DraggablePiece.activePiece = null;
     }
 
@@ -126,6 +132,7 @@ export class DraggablePiece extends Component {
         DraggablePiece.activePiece = this;
         this.dragging = true;
         this.moved = false;
+        this.touchId = event.getID();
         this.rotation = this.session?.getRotation(this.pieceId) ?? this.rotation;
 
         const touch = event.getUILocation();
@@ -136,6 +143,8 @@ export class DraggablePiece extends Component {
 
     private onTouchMove(event: EventTouch): void {
         if (!this.dragging || DraggablePiece.activePiece !== this) return;
+        // 多点触控：只跟踪发起本次拖拽的触点，其它手指的 move 忽略
+        if (this.touchId !== null && event.getID() !== this.touchId) return;
         const touch = event.getUILocation();
         const moved = Math.abs(touch.x - this.touchStart.x) > 8 || Math.abs(touch.y - this.touchStart.y) > 8;
         if (moved && !this.moved) this.beginDrag(touch.x, touch.y);
@@ -159,6 +168,8 @@ export class DraggablePiece extends Component {
 
     private onTouchEnd(event: EventTouch): void {
         if (!this.dragging || DraggablePiece.activePiece !== this) return;
+        // 非归属触点的抬手不结束拖拽，等原触点自己的 END/CANCEL
+        if (this.touchId !== null && event.getID() !== this.touchId) return;
         event.propagationStopped = true;
 
         if (!this.moved) {
@@ -171,6 +182,7 @@ export class DraggablePiece extends Component {
 
     private onTouchCancel(event: EventTouch): void {
         if (!this.dragging || DraggablePiece.activePiece !== this) return;
+        if (this.touchId !== null && event.getID() !== this.touchId) return;
         this.revertDrag();
         this.endDrag();
         event.propagationStopped = true;
@@ -193,6 +205,7 @@ export class DraggablePiece extends Component {
         } else {
             this.revertDrag();
             this.playShake();
+            this.callbacks?.illegal?.();
         }
     }
 
@@ -218,6 +231,7 @@ export class DraggablePiece extends Component {
         }
         this.revertDrag();
         this.playShake();
+        this.callbacks?.illegal?.();
     }
 
     /** 当前位置是否已离开棋盘（拖向托盘途中、或落在棋盘外） */
@@ -229,6 +243,7 @@ export class DraggablePiece extends Component {
     private endDrag(): void {
         this.dragging = false;
         this.moved = false;
+        this.touchId = null;
         this.pendingAnchor = null;
         this.pendingValid = false;
         this.boardGrid?.clearGhost();
@@ -355,10 +370,17 @@ export class DraggablePiece extends Component {
         if (!transform) return false;
         const touch = event.getUILocation();
         const local = transform.convertToNodeSpaceAR(new Vec3(touch.x, touch.y, 0));
-        const half = this.cellSize / 2;
+        // convertToNodeSpaceAR 得到的是去掉本节点缩放后的本地坐标，子格位置与半边长
+        // 都要乘上实际世界缩放，托盘 setScale(约 0.62) 时命中盒才会随视觉一起缩小
+        const scale = this.node.worldScale;
+        const scaleX = Math.abs(scale.x);
+        const scaleY = Math.abs(scale.y);
+        const halfX = this.cellSize / 2 * scaleX;
+        const halfY = this.cellSize / 2 * scaleY;
         for (const child of this.node.children) {
             const position = child.position;
-            if (Math.abs(local.x - position.x) <= half && Math.abs(local.y - position.y) <= half) {
+            if (Math.abs(local.x - position.x * scaleX) <= halfX
+                && Math.abs(local.y - position.y * scaleY) <= halfY) {
                 return true;
             }
         }
@@ -366,6 +388,8 @@ export class DraggablePiece extends Component {
     }
 
     private playShake(): void {
+        // 先停掉上一次抖动，避免连续非法落点时多个 tween 叠加
+        Tween.stopAllByTarget(this.node);
         const origin = this.node.position.clone();
         tween(this.node)
             .to(0.06, { position: new Vec3(origin.x - 6, origin.y, origin.z) })

@@ -12,6 +12,7 @@ const EMPTY_LEVEL: LevelData = {
     gridSize: 6,
     thief: { x: 1, y: 1 },
     buildings: [],
+    police: [],
 };
 
 const CATALOG: PieceCatalog = { ...TEST_CATALOG };

@@ -1,0 +1,449 @@
+/* 配色与 assets/GScript/game/ui/DesignAssets.ts 的 PocketPalette 一致 */
+:root {
+    --ink: #263f47;
+    --mint: #dcefe4;
+    --mint-deep: #528d79;
+    --cream: #fffaf0;
+    --orange: #f78462;
+    --orange-dark: #c76449;
+    --line: #cddcd2;
+    --yellow: #ffcf71;
+    --blue: #83b8d9;
+    --muted: #8b9787;
+    --cell: 64px;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--mint);
+    color: var(--ink);
+    font: 14px/1.5 "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+h1 {
+    font-size: 18px;
+    margin: 0;
+}
+
+h2 {
+    font-size: 13px;
+    margin: 0 0 8px;
+    color: var(--mint-deep);
+    letter-spacing: 0.05em;
+}
+
+.topbar {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 12px 20px;
+    background: var(--cream);
+    border-bottom: 1px solid var(--line);
+}
+
+.hint {
+    color: var(--muted);
+    font-size: 12px;
+    margin: 0;
+}
+
+.layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 20px 40px;
+}
+
+.pane {
+    background: var(--cream);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px 16px;
+}
+
+.pane--board {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.pane--side {
+    flex: 0 0 336px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+}
+
+.pane-head {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.board-scroll {
+    overflow: auto;
+}
+
+.board {
+    display: grid;
+    gap: 4px;
+    width: max-content;
+}
+
+/* ── 格子 ── */
+.cell {
+    position: relative;
+    width: var(--cell);
+    height: var(--cell);
+    background: #f4efe2;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background 0.1s, box-shadow 0.1s;
+}
+
+.cell:hover {
+    box-shadow: inset 0 0 0 2px var(--blue);
+}
+
+.cell .coord {
+    position: absolute;
+    right: 4px;
+    bottom: 2px;
+    font-size: 9px;
+    color: var(--muted);
+    pointer-events: none;
+}
+
+.cell .tag {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fffdf2;
+    font-weight: 700;
+    font-size: 16px;
+    pointer-events: none;
+}
+
+.cell--building,
+.cell--preset {
+    background: var(--tint);
+    border-color: rgba(38, 63, 71, 0.25);
+}
+
+/* 预置警察的警察站位格：醒目黑框（不再用黑框/黑点标 origin 中心点） */
+.cell--cop {
+    box-shadow: inset 0 0 0 4px var(--ink), 0 0 0 2px var(--cream);
+}
+
+.cell--selected {
+    box-shadow: inset 0 0 0 3px var(--orange);
+}
+
+.cell--thief {
+    background: var(--orange);
+    border-color: var(--orange-dark);
+}
+
+.cell--thief .tag,
+.cell--sol .tag {
+    font-size: 12px;
+}
+
+.cell--ghost-ok {
+    box-shadow: inset 0 0 0 3px var(--mint-deep);
+    background: #e6f4ea;
+}
+
+.cell--ghost-bad {
+    box-shadow: inset 0 0 0 3px var(--orange-dark);
+    background: #ffe3dc;
+    cursor: not-allowed;
+}
+
+.cell--sol {
+    background: var(--blue);
+}
+
+.cell--sol-cop::after {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #fffdf2;
+    box-shadow: 0 0 0 2px var(--ink);
+}
+
+.message {
+    margin-top: 10px;
+    min-height: 20px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.message--error {
+    color: var(--orange-dark);
+}
+
+/* ── 侧栏 ── */
+.block {
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--line);
+}
+
+.block:last-child {
+    border-bottom: 0;
+    padding-bottom: 0;
+}
+
+.tools,
+.palette {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.tool,
+.palette-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 8px;
+    min-width: 72px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+}
+
+.tool.active,
+.palette-item.active {
+    border-color: var(--mint-deep);
+    box-shadow: 0 0 0 2px rgba(82, 141, 121, 0.25);
+}
+
+.tool-name {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.palette-item.selected {
+    border-color: var(--orange);
+    box-shadow: 0 0 0 2px rgba(247, 132, 98, 0.25);
+}
+
+.palette-item.used {
+    opacity: 0.45;
+}
+
+.palette-item:disabled {
+    cursor: not-allowed;
+}
+
+.palette-group {
+    flex: 0 0 100%;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+}
+
+.palette-group:first-child {
+    margin-top: 0;
+}
+
+.thumb {
+    display: grid;
+    gap: 2px;
+}
+
+.thumb i {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: transparent;
+}
+
+.thumb i.on {
+    background: var(--mint-deep);
+}
+
+.thumb i.cop {
+    box-shadow: inset 0 0 0 2px var(--ink);
+    background: var(--yellow);
+}
+
+.field {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.field label {
+    flex: 0 0 88px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+input[type="text"],
+select {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 5px 8px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
+    color: inherit;
+}
+
+.row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+button {
+    padding: 7px 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+}
+
+button:hover:enabled {
+    border-color: var(--mint-deep);
+}
+
+button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+button.primary {
+    background: var(--mint-deep);
+    border-color: var(--mint-deep);
+    color: #fffdf2;
+    flex: 1 1 auto;
+}
+
+button.danger {
+    color: var(--orange-dark);
+}
+
+.check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.report {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+}
+
+.report-line {
+    display: flex;
+    gap: 8px;
+    align-items: baseline;
+}
+
+.report-line b {
+    flex: 0 0 68px;
+    font-weight: 500;
+    color: var(--muted);
+}
+
+.report-line.ok span {
+    color: var(--mint-deep);
+}
+
+.report-line.bad span {
+    color: var(--orange-dark);
+}
+
+.report-line.busy span {
+    color: var(--muted);
+}
+
+.errors {
+    margin: 0;
+    padding-left: 18px;
+    color: var(--orange-dark);
+    font-size: 12px;
+    max-height: 160px;
+    overflow-y: auto;
+}
+
+.json {
+    margin: 8px 0 0;
+    padding: 10px;
+    max-height: 220px;
+    overflow: auto;
+    background: #f4efe2;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: pre;
+}
+
+/* ── 自定义确认弹层（内嵌浏览器的 confirm 会被自动取消） ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(38, 63, 71, 0.35);
+}
+
+.modal {
+    min-width: 320px;
+    max-width: 440px;
+    padding: 18px 20px 16px;
+    background: var(--cream);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(38, 63, 71, 0.25);
+}
+
+.modal-text {
+    margin: 0 0 14px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.modal-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.modal-row button.primary {
+    flex: 0 0 auto;
+    padding: 7px 18px;
+}

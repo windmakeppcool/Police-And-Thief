@@ -36,6 +36,12 @@ npx vitest run tests/game2/GameSession.test.ts
 # 类型检查纯逻辑与平台代码
 npm run typecheck:logic
 
+# 类型检查关卡编辑器（tools/level-editor）
+npm run typecheck:editor
+
+# 启动关卡编辑器（vite，端口 5173；只在开发时使用，不参与打包）
+npm run level-editor
+
 # 类型检查完整 Cocos 项目；需要先由 Cocos Creator 生成 temp/tsconfig.cocos.json
 npm run typecheck:cocos
 ```
@@ -74,7 +80,7 @@ npm run typecheck:cocos
 
 表现层（Cocos）：
 
-- `game/GameController.ts`：入口组件，挂在 `EViewLayer.Anim`。装配设计稿 UI → 加载棋盘预制体 → 按关卡数据摆放建筑 → 把 6 个警察棋子放进托盘槽位，并驱动开始/撤销/重开/胜利流程与定时动画（警灯、警车顶灯、小偷东张西望）。
+- `game/GameController.ts`：入口组件，挂在 `EViewLayer.Anim`。装配设计稿 UI → 加载棋盘预制体 → 按关卡数据摆放建筑 → 预置警察锁定摆上棋盘、其余警察棋子放进托盘槽位，并驱动开始/撤销/重开/胜利流程与定时动画（警灯、警车顶灯、小偷东张西望）。
 - `game/LevelRepository.ts`：从 `GameBN` 加载 `levels/levels` 与 `levels/<id>` 的 `JsonAsset` 并交给 `LevelParser`。放在 `game/` 根目录而非 `game/level/`，因为后者被 `tsconfig.spec.json` 覆盖、不能 `import 'cc'`。
 - `game/piece/BoardGrid.ts`：绘制棋盘格（四角用斑马线素材）、小偷节点与落点预览（合法/非法两套贴图）。
 - `game/piece/DraggablePiece.ts`：警察棋子交互。托盘 → 棋盘拖拽（超过 8px 才算拖拽）、落点预览、点击原地转向、拖出棋盘收回托盘、非法落点弹回并抖动；命中判定用“格子方块并集”，不依赖 `PolygonCollider2D`。
@@ -117,14 +123,16 @@ UI 视觉基准是 `design/pocket-patrol-design.md`（“口袋巡逻队”薄�
 ## 玩法规则
 
 - 6×6 棋盘，坐标范围 -3..2，小偷固定在关卡配置的格子；建筑由关卡数据自动摆放，玩家不能移动。
-- 关卡从 `assets/Game/levels/level_XX.json` 读取：可配置小偷位置与建筑摆放（`anchor` + `rotation`）。JSON 坐标是左上原点列/行（x 向右、y 向下），运行时换算为内部坐标；加载时只做静态校验，非法关卡拒入并打印全部错误。可解性由 `tests/game2/LevelJson.test.ts` 扫盘断言。
+- 关卡从 `assets/Game/levels/level_XX.json` 读取：可配置小偷位置、建筑摆放（`anchor` + `rotation`）与预置警察（`police` 数组，字段同建筑）。JSON 坐标是左上原点列/行（x 向右、y 向下），运行时换算为内部坐标；加载时只做静态校验，非法关卡拒入并打印全部错误。可解性由 `tests/game2/LevelJson.test.ts` 扫盘断言。
+- 预置警察（`police`）开局即锁定在棋盘上：玩家不能拖动、转向或撤回托盘，托盘里也不出现这些棋子（槽位只按未预置的数量造）。同一枚警察棋子至多预置一次；预置警察与建筑一样占格，参与围住判定。
 - 玩家从托盘拖出警察棋子放到棋盘；点击棋子会顺时针转向 90°：已上场时绕 origin cell 原地转向（需要落点合法），还在托盘时则先调好朝向（`GameSession.rotateInTray`），这样贴边的落点也能直接拖上去。
-- **已上场的棋子拖出棋盘即可撤回托盘**（`GameSession.remove`），撤下保留当前朝向，方便换个位置再摆。这样玩家不会被自己堵死。
-- HUD 的「已部署 N / 总数」就是当前在场棋子数（`GameSession.moveCount`）。已上场的棋子挪到别的格子不改变它，撤下则减一。
-- **获胜 = 小偷被围住 且 6 枚警察棋子全部上场**（`GameSession.won`）。两者缺一不可：只围住不算赢，摆满了没围住也不算。
-- **关卡可解性要求「用满全部警察棋子」**：一关只算合格，当且仅当存在一种放法把 6 枚警察棋子全部合法放到棋盘上、并且围住小偷。这保证不会出现「某枚棋子被建筑堵得完全放不下去」的坏关卡。
+- **已上场的棋子拖出棋盘即可撤回托盘**（`GameSession.remove`），预置锁定的棋子除外；撤下保留当前朝向，方便换个位置再摆。这样玩家不会被自己堵死。
+- HUD 的「已部署 N / 总数」就是当前在场棋子数（`GameSession.moveCount`，预置警察开局即计入）。已上场的棋子挪到别的格子不改变它，撤下则减一。
+- **获胜 = 小偷被围住 且 6 枚警察棋子全部上场**（`GameSession.won`，预置 + 玩家部署合计 6 枚）。两者缺一不可：只围住不算赢，摆满了没围住也不算。
+- **关卡可解性要求「预置就位后、其余警察全部上场」**：一关只算合格，当且仅当存在一种放法把所有未预置的警察棋子合法放到棋盘上、并且围住小偷（`tests/game2/helpers/levelFixtures.ts` 的 `fixedBlockedCells` / `deployablePoliceCatalog` 把建筑与预置警察都当固定路障）。这保证不会出现「某枚棋子被堵得完全放不下去」的坏关卡。
 - 通关固定得 1 颗星，不做多档评级（星数等于已过关卡数）。
-- 撤销可回退上一次放置/移动/撤下（撤下的棋子原样放回），重开把所有警察恢复到托盘初始状态。
+- 撤销可回退上一次放置/移动/撤下（撤下的棋子原样放回），重开把玩家部署的警察恢复到托盘初始状态；建筑与预置警察始终保持关卡配置。
+- **可视化摆关**：`npm run level-editor` 启动 `tools/level-editor/` 下的 vite 网页编辑器（端口 5173）。它直接 import 游戏的 `pieces.ts` / `PieceGeometry` / `LevelParser` 与测试求解器，摆小偷、建筑、预置警察时实时校验并判定可解性，保存直接写回 `assets/Game/levels/`（自动补 `.meta`、更新 `levels.json`）。该目录在 `assets/` 之外，不参与 Cocos 构建，不会被打包发布。
 
 ## 平台适配
 

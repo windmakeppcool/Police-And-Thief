@@ -125,7 +125,8 @@ export class GameController extends Component {
             onRestart: () => this.askRestart(),
             onPause: () => this.pauseGame(),
         }, levelIndex > 0 ? levelIndex : undefined);
-        this.tray = new GameTrayView(this.node, this.frames, this.layout, this.session.getPoliceIds().length);
+        // 托盘只为关卡未预置的警察棋子造槽位；预置锁定的开局就在棋盘上
+        this.tray = new GameTrayView(this.node, this.frames, this.layout, this.session.getTrayPoliceIds().length);
         // 拖拽层必须盖在托盘之上，弹层再盖住拖拽层
         this.pieceLayer = createNode('PieceLayer', this.node, { width: this.layout.width, height: this.layout.height });
         this.overlays = new GameOverlayView(this.node, this.frames, this.layout);
@@ -184,12 +185,43 @@ export class GameController extends Component {
         }
     }
 
-    /** 警察棋子按目录顺序进入托盘槽位 */
+    /**
+     * 警察棋子分两类装配：
+     * - 关卡预置的：锁定摆在棋盘 anchor 上，不可拖拽/转向；
+     * - 其余的：按目录顺序进入托盘槽位，玩家拖上场。
+     */
     private async buildPolice(): Promise<void> {
         if (!this.boardGrid) return;
-        const policeIds = this.session.getPoliceIds();
-        for (let i = 0; i < policeIds.length; i++) {
-            const pieceId = policeIds[i];
+
+        for (const pieceId of this.session.getPresetPoliceIds()) {
+            const piece = BoardPieces[pieceId];
+            const key = PIECE_PREFAB_KEYS[pieceId];
+            if (!piece || !key) {
+                console.error(`[GameController] 未知预置警察棋子: ${pieceId}`);
+                continue;
+            }
+            const prefab = await gCtrl.res.loadAssetAsync(PrefabsCfg[key], Prefab);
+            if (!prefab) {
+                console.error(`[GameController] 加载警察预制体失败: ${pieceId}`);
+                continue;
+            }
+            if (!this.isValid || !this.node.isValid) return;
+            const node = instantiate(prefab);
+            node.parent = this.boardGrid.node;
+            const component = node.getComponent(PolicePieces) ?? node.addComponent(PolicePieces);
+            component.initLocked({
+                pieceId,
+                piece,
+                session: this.session,
+                boardGrid: this.boardGrid,
+                cellFrame: this.frames.policeCell,
+            });
+            this.pieces.set(pieceId, component);
+        }
+
+        const trayIds = this.session.getTrayPoliceIds();
+        for (let i = 0; i < trayIds.length; i++) {
+            const pieceId = trayIds[i];
             const piece = BoardPieces[pieceId];
             const key = PIECE_PREFAB_KEYS[pieceId];
             if (!piece || !key) {

@@ -3,13 +3,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { coordKey } from "../../assets/GScript/game/rules/BoardOccupancy";
-import { pieceCells, toAbsoluteCells } from "../../assets/GScript/game/rules/PieceGeometry";
 import { isThiefCaptured } from "../../assets/GScript/game/rules/WinCondition";
 import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
 import { parseLevel, parseLevelIndex } from "../../assets/GScript/game/level/LevelParser";
 import { GameSession } from "../../assets/GScript/game/common/GameSession";
 import { findFullSquadSolutionDetailed, enumeratePlacements, SOLVER_NODE_BUDGET } from "./helpers/levelSolver";
-import { POLICE_ONLY_PIECES } from "./helpers/levelFixtures";
+import { deployablePoliceCatalog, fixedBlockedCells } from "./helpers/levelFixtures";
 
 const LEVELS_DIR = fileURLToPath(new URL("../../assets/Game/levels/", import.meta.url));
 
@@ -35,23 +34,22 @@ describe("关卡 JSON 资料", () => {
         }
     });
 
-    it("每关开局小偷尚未被围死，且用满全部警察棋子可解", () => {
+    it("每关开局小偷尚未被围死，且预置棋子之外的警察全部上场即可解", () => {
         const index = parseLevelIndex(readJson("levels.json"));
         for (const levelId of index) {
             const level = parseLevel(readJson(`${levelId}.json`), BoardPieces);
-            const blocked = level.buildings.flatMap(b =>
-                toAbsoluteCells(pieceCells(BoardPieces[b.pieceId], b.rotation), b.anchor),
-            );
+            // 固定路障 = 建筑 + 预置警察；预置警察开局就在棋盘上，不能算作玩家可落的子
+            const blocked = fixedBlockedCells(level);
 
             const occupancy = new Map<string, string>();
-            blocked.forEach(cell => occupancy.set(coordKey(cell), "building"));
+            blocked.forEach(cell => occupancy.set(coordKey(cell), "blocked"));
             expect(
                 isThiefCaptured(level.gridSize, level.thief, occupancy),
                 `${levelId} 开局不应已被围死`,
             ).toBe(false);
 
-            // 建筑是固定路障，不能算作玩家可落的子，所以只用警察棋子求解
-            const solverPieces = enumeratePlacements(POLICE_ONLY_PIECES, level.gridSize, level.thief);
+            // 只用「关卡没有预置」的警察棋子求解：预置棋子已作为路障计入 blocked
+            const solverPieces = enumeratePlacements(deployablePoliceCatalog(level), level.gridSize, level.thief);
             const result = findFullSquadSolutionDetailed(solverPieces, level.gridSize, level.thief, blocked);
 
             // 搜索节点不应逼近预算：超过一半说明该关已接近当前求解能力的上限
@@ -64,9 +62,9 @@ describe("关卡 JSON 资料", () => {
                 result.status,
                 result.status === 'unknown'
                     ? `${levelId} 求解预算不足：访问节点超过 ${SOLVER_NODE_BUDGET}，无法判定是否可解`
-                    : `${levelId} 关卡无解：穷尽摆法后不存在「用满六枚警察棋子」的围捕解`,
+                    : `${levelId} 关卡无解：穷尽摆法后不存在「预置棋子就位 + 其余警察全部上场」的围捕解`,
             ).toBe('solved');
-            expect(result.solution, `${levelId} 应当存在「用满六枚警察棋子」的围捕解`).not.toBeNull();
+            expect(result.solution, `${levelId} 应当存在「其余警察全部上场」的围捕解`).not.toBeNull();
 
             // 把解交给 GameSession 落一遍，确保求解器的模型与真实规则一致
             const session = new GameSession(level, BoardPieces);
@@ -76,7 +74,10 @@ describe("关卡 JSON 资料", () => {
                     `${levelId}: ${step.pieceId} 落在 (${step.anchor.x}, ${step.anchor.y}) 应当合法`,
                 ).toBe(true);
             }
-            expect(session.won, `${levelId} 摆满六枚围住小偷后应当获胜`).toBe(true);
+            expect(session.moveCount, `${levelId} 解完应当六枚警察全部在场`).toBe(
+                session.getPoliceIds().length,
+            );
+            expect(session.won, `${levelId} 预置就位、其余警察摆满并围住小偷后应当获胜`).toBe(true);
         }
     });
 });

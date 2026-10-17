@@ -8,10 +8,22 @@ import {
     toJsonCoord,
 } from "../../assets/GScript/game/level/LevelParser";
 
-/** 只放一个 L 形建筑和一个警察，够跑结构/几何用例 */
+/** 两个同形 L 建筑（不同 id）和一个警察，够跑结构/几何用例 */
 const CATALOG: PieceCatalog = {
     "Structure-001": {
         id: "Structure-001",
+        type: PieceType.Building,
+        cells: [
+            { name: "white-00", coord: { x: 0, y: 2 } },
+            { name: "white-01", coord: { x: 0, y: 1 } },
+            { name: "white-02", coord: { x: 0, y: 0 } },
+            { name: "white-03", coord: { x: 1, y: 0 } },
+        ],
+        origin: 2,
+        rotation: 0,
+    },
+    "Structure-002": {
+        id: "Structure-002",
         type: PieceType.Building,
         cells: [
             { name: "white-00", coord: { x: 0, y: 2 } },
@@ -77,6 +89,7 @@ describe("结构校验", () => {
             gridSize: 6,
             thief: { x: 1, y: 1 },
             buildings: [],
+            police: [],
         });
     });
 
@@ -298,10 +311,80 @@ describe("几何校验", () => {
             ...baseLevel(),
             buildings: [
                 { pieceId: "Structure-001", anchor: { x: 1, y: 2 }, rotation: 0 },
-                { pieceId: "Structure-001", anchor: { x: 4, y: 3 }, rotation: 180 },
+                { pieceId: "Structure-002", anchor: { x: 4, y: 3 }, rotation: 180 },
             ],
         }, CATALOG);
         expect(level.buildings).toHaveLength(2);
+    });
+});
+
+describe("预置警察 police", () => {
+    it("缺省 police 时解析为空数组", () => {
+        expect(parseLevel(baseLevel(), CATALOG).police).toEqual([]);
+    });
+
+    it("合法预置警察解析为内部坐标", () => {
+        // anchor JSON (1,1) -> 内部 (-2,1)；PoliceUI-002 占 (-2,2)(-2,1)(-1,1)
+        const level = parseLevel(
+            { ...baseLevel(), police: [{ pieceId: "PoliceUI-002", anchor: { x: 1, y: 1 }, rotation: 0 }] },
+            CATALOG,
+        );
+        expect(level.police).toEqual([
+            { pieceId: "PoliceUI-002", anchor: { x: -2, y: 1 }, rotation: 0 },
+        ]);
+    });
+
+    it("police 不是数组报错", () => {
+        expect(parseErrors({ ...baseLevel(), police: {} }).some(e => e.startsWith("police:"))).toBe(true);
+    });
+
+    it("police 里引用建筑棋子报错", () => {
+        const errors = parseErrors({
+            ...baseLevel(),
+            police: [{ pieceId: "Structure-001", anchor: { x: 1, y: 1 }, rotation: 0 }],
+        });
+        expect(errors.some(e => e.includes("police[0].pieceId") && e.includes("不是警察棋子"))).toBe(true);
+    });
+
+    it("同一枚警察棋子被预置多次报错", () => {
+        const entry = { pieceId: "PoliceUI-002", anchor: { x: 1, y: 1 }, rotation: 0 };
+        const errors = parseErrors({ ...baseLevel(), police: [entry, entry] });
+        expect(errors.some(e => e.includes("police[1].pieceId") && e.includes("出现了多次"))).toBe(true);
+    });
+
+    it("同一栋建筑被放置多次报错", () => {
+        const entry = { pieceId: "Structure-001", anchor: { x: 1, y: 2 }, rotation: 0 };
+        const errors = parseErrors({
+            ...baseLevel(),
+            buildings: [entry, { ...entry, anchor: { x: 4, y: 3 }, rotation: 180 }],
+        });
+        expect(errors.some(e => e.includes("buildings[1].pieceId") && e.includes("出现了多次"))).toBe(true);
+    });
+
+    it("预置警察压住小偷报错", () => {
+        // anchor JSON (4,1) -> 内部 (1,1)，origin 格正好是小偷
+        const errors = parseErrors({
+            ...baseLevel(),
+            police: [{ pieceId: "PoliceUI-002", anchor: { x: 4, y: 1 }, rotation: 0 }],
+        });
+        expect(errors.some(e => e.startsWith("police[0]") && e.includes("压住了小偷"))).toBe(true);
+    });
+
+    it("预置警察与建筑重叠时跨类别报错并指出建筑下标", () => {
+        const errors = parseErrors({
+            ...baseLevel(),
+            buildings: [{ pieceId: "Structure-001", anchor: { x: 1, y: 2 }, rotation: 0 }],
+            police: [{ pieceId: "PoliceUI-002", anchor: { x: 1, y: 1 }, rotation: 0 }],
+        });
+        expect(errors.some(e => e.startsWith("police[0]") && e.includes("与 buildings[0] 重叠"))).toBe(true);
+    });
+
+    it("预置警察条目含未知字段报错", () => {
+        const errors = parseErrors({
+            ...baseLevel(),
+            police: [{ pieceId: "PoliceUI-002", anchor: { x: 1, y: 1 }, rotation: 0, locked: true }],
+        });
+        expect(errors.some(e => e.includes("police[0]") && e.includes('"locked"'))).toBe(true);
     });
 });
 

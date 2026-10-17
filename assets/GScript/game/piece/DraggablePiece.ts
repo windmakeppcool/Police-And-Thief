@@ -32,6 +32,15 @@ export type PieceInitOptions = {
     trayScale: number;
 };
 
+/** 关卡预置、锁定棋子的初始化参数：没有托盘槽位与拖拽层，也没有交互回调 */
+export type LockedPieceInitOptions = {
+    pieceId: string;
+    piece: Piece;
+    session: GameSession;
+    boardGrid: BoardGrid;
+    cellFrame: SpriteFrame | null;
+};
+
 /**
  * 警察棋子交互：托盘 -> 棋盘拖拽、落点预览、点击转向、非法落点弹回。
  * 只负责表现与输入，放置合法性全部交给 GameSession。
@@ -57,6 +66,8 @@ export class DraggablePiece extends Component {
     private cellSize = 64;
 
     private interactable = false;
+    /** 关卡预置、锁定的棋子：永远不可交互，setInteractable 对其无效 */
+    private locked = false;
     private dragging = false;
     /** 当前拖拽归属的触点 ID（多点触控下只响应发起拖拽的那根手指） */
     private touchId: number | null = null;
@@ -83,13 +94,41 @@ export class DraggablePiece extends Component {
         this.moveToTray();
     }
 
+    /**
+     * 关卡预置的锁定棋子：直接摆在棋盘 anchor 上，不进托盘、不能拖拽/转向。
+     * 节点挂到棋盘节点下（和建筑一样），位置即 origin cell 对应格中心。
+     */
+    public initLocked(options: LockedPieceInitOptions): void {
+        this.pieceId = options.pieceId;
+        this.piece = options.piece;
+        this.session = options.session;
+        this.boardGrid = options.boardGrid;
+        this.cellFrame = options.cellFrame;
+        this.cellSize = options.boardGrid.cellSize;
+        this.locked = true;
+        this.interactable = false;
+        this.rotation = options.session.getRotation(options.pieceId);
+        const placement = options.session.getPlacement(options.pieceId);
+        this.applyCellFrames(false);
+        this.layoutChildren();
+        if (placement) {
+            this.onBoard = true;
+            this.anchor = placement.anchor;
+            this.node.parent = options.boardGrid.node;
+            this.node.setScale(1, 1, 1);
+            this.node.setPosition(options.boardGrid.cellToLocal(placement.anchor));
+        }
+    }
+
     public setInteractable(value: boolean): void {
+        if (this.locked) return;
         this.interactable = value;
         if (!value) this.cancelDrag();
     }
 
-    /** 依据外部逻辑状态（撤销、重开）同步表现 */
+    /** 依据外部逻辑状态（撤销、重开）同步表现；锁定棋子由关卡固定，无需同步 */
     public syncFromSession(): void {
+        if (this.locked) return;
         if (!this.session) return;
         const placement = this.session.getPlacement(this.pieceId);
         this.rotation = this.session.getRotation(this.pieceId);

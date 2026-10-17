@@ -69,6 +69,7 @@ const pickerEl = el<HTMLSelectElement>("level-picker");
 const saveBtn = el<HTMLButtonElement>("btn-save");
 const saveHintEl = el<HTMLParagraphElement>("save-hint");
 const deleteBtn = el<HTMLButtonElement>("btn-delete");
+const clearBtn = el<HTMLButtonElement>("btn-clear");
 const newBtn = el<HTMLButtonElement>("btn-new");
 const solutionInput = el<HTMLInputElement>("show-solution");
 
@@ -753,6 +754,20 @@ newBtn.addEventListener("click", () => {
     replaceDoc(emptyDoc(id, state.doc.gridSize));
     pickerEl.value = "";
     setMessage(`新建 ${id}：先放小偷，再摆建筑 / 预置警察`);
+});
+
+clearBtn.addEventListener("click", () => {
+    const { doc } = state;
+    if (doc.thief === null && doc.buildings.length === 0 && doc.police.length === 0) {
+        setMessage("棋盘已经是空的", true);
+        return;
+    }
+    if (!window.confirm("清空棋盘上的小偷、建筑和预置警察？（id 与棋盘尺寸保留，可用 Ctrl+Z 撤销）")) return;
+    state.selected = null;
+    state.brush = null;
+    commit({ ...doc, thief: null, buildings: [], police: [] });
+    setMessage("已清空棋盘");
+    render();
 });
 
 deleteBtn.addEventListener("click", () => {

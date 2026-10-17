@@ -8,10 +8,22 @@ import {
     toJsonCoord,
 } from "../../assets/GScript/game/level/LevelParser";
 
-/** 只放一个 L 形建筑和一个警察，够跑结构/几何用例 */
+/** 两个同形 L 建筑（不同 id）和一个警察，够跑结构/几何用例 */
 const CATALOG: PieceCatalog = {
     "Structure-001": {
         id: "Structure-001",
+        type: PieceType.Building,
+        cells: [
+            { name: "white-00", coord: { x: 0, y: 2 } },
+            { name: "white-01", coord: { x: 0, y: 1 } },
+            { name: "white-02", coord: { x: 0, y: 0 } },
+            { name: "white-03", coord: { x: 1, y: 0 } },
+        ],
+        origin: 2,
+        rotation: 0,
+    },
+    "Structure-002": {
+        id: "Structure-002",
         type: PieceType.Building,
         cells: [
             { name: "white-00", coord: { x: 0, y: 2 } },
@@ -299,7 +311,7 @@ describe("几何校验", () => {
             ...baseLevel(),
             buildings: [
                 { pieceId: "Structure-001", anchor: { x: 1, y: 2 }, rotation: 0 },
-                { pieceId: "Structure-001", anchor: { x: 4, y: 3 }, rotation: 180 },
+                { pieceId: "Structure-002", anchor: { x: 4, y: 3 }, rotation: 180 },
             ],
         }, CATALOG);
         expect(level.buildings).toHaveLength(2);
@@ -337,7 +349,16 @@ describe("预置警察 police", () => {
     it("同一枚警察棋子被预置多次报错", () => {
         const entry = { pieceId: "PoliceUI-002", anchor: { x: 1, y: 1 }, rotation: 0 };
         const errors = parseErrors({ ...baseLevel(), police: [entry, entry] });
-        expect(errors.some(e => e.includes("police[1].pieceId") && e.includes("被预置了多次"))).toBe(true);
+        expect(errors.some(e => e.includes("police[1].pieceId") && e.includes("出现了多次"))).toBe(true);
+    });
+
+    it("同一栋建筑被放置多次报错", () => {
+        const entry = { pieceId: "Structure-001", anchor: { x: 1, y: 2 }, rotation: 0 };
+        const errors = parseErrors({
+            ...baseLevel(),
+            buildings: [entry, { ...entry, anchor: { x: 4, y: 3 }, rotation: 180 }],
+        });
+        expect(errors.some(e => e.includes("buildings[1].pieceId") && e.includes("出现了多次"))).toBe(true);
     });
 
     it("预置警察压住小偷报错", () => {

@@ -10,7 +10,7 @@ import {
     buildingLabel,
     canPlaceAt,
     emptyDoc,
-    findPresetPolice,
+    findPlacementIndex,
     fromRawLevel,
     listOf,
     placementJsonCells,
@@ -328,7 +328,7 @@ function renderTools(): void {
 function paletteButton(kind: PlacementKind, pieceId: string): HTMLButtonElement {
     const active =
         state.brush?.kind === "place" && state.brush.place === kind && state.brush.pieceId === pieceId;
-    const used = kind === "police" && findPresetPolice(state.doc, pieceId) >= 0;
+    const used = findPlacementIndex(state.doc, kind, pieceId) >= 0;
     const rotation = active ? state.brushRotation : BoardPieces[pieceId].rotation;
     const button = document.createElement("button");
     button.type = "button";
@@ -337,7 +337,7 @@ function paletteButton(kind: PlacementKind, pieceId: string): HTMLButtonElement 
     button.appendChild(pieceThumb(pieceId, rotation));
     const name = document.createElement("span");
     name.className = "tool-name";
-    name.textContent = used ? `${pieceId} · 已预置` : pieceId;
+    name.textContent = used ? `${pieceId} · 已放置` : pieceId;
     button.appendChild(name);
     button.addEventListener("click", () => {
         const same = active;
@@ -509,6 +509,8 @@ function onCellClick(at: JsonCoord): void {
         const index = listOf(doc, place).length;
         commit(result.doc);
         state.selected = { kind: place, index };
+        // 每枚棋子只能放一次：落下后自动回到指针模式，避免连续点击重复放置
+        state.brush = null;
         const label = place === "police" ? "预置警察" : "建筑";
         setMessage(`放置${label} ${pieceId} 于 (${at.x}, ${at.y})，朝向 ${state.brushRotation}°`);
         render();
@@ -679,6 +681,51 @@ async function save(): Promise<void> {
     render();
 }
 
+// ── 自定义确认弹层 ───────────────────────────────────────────
+// 内嵌浏览器里 window.confirm() 会被直接当 false 处理，所以自己画一个
+
+function askConfirm(message: string, okText = "确认"): Promise<boolean> {
+    return new Promise(resolve => {
+        const overlay = document.createElement("div");
+        overlay.className = "modal-overlay";
+        const dialog = document.createElement("div");
+        dialog.className = "modal";
+        const text = document.createElement("p");
+        text.className = "modal-text";
+        text.textContent = message;
+        const row = document.createElement("div");
+        row.className = "modal-row";
+        const cancel = document.createElement("button");
+        cancel.type = "button";
+        cancel.textContent = "取消";
+        const ok = document.createElement("button");
+        ok.type = "button";
+        ok.className = "primary";
+        ok.textContent = okText;
+        row.append(cancel, ok);
+        dialog.append(text, row);
+        overlay.appendChild(dialog);
+
+        const finish = (value: boolean) => {
+            overlay.remove();
+            window.removeEventListener("keydown", onKey);
+            resolve(value);
+        };
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key === "Escape") finish(false);
+            if (event.key === "Enter") finish(true);
+        };
+        cancel.addEventListener("click", () => finish(false));
+        ok.addEventListener("click", () => finish(true));
+        overlay.addEventListener("click", event => {
+            if (event.target === overlay) finish(false);
+        });
+        window.addEventListener("keydown", onKey);
+        document.body.appendChild(overlay);
+        ok.focus();
+    });
+}
+
 // ── 事件绑定 ────────────────────────────────────────────────
 
 boardEl.addEventListener("pointermove", event => {
@@ -734,15 +781,15 @@ idInput.addEventListener("input", () => {
 gridSelect.addEventListener("change", () => {
     const size = Number(gridSelect.value);
     if (size === state.doc.gridSize) return;
-    if (state.doc.buildings.length > 0 || state.doc.police.length > 0 || state.doc.thief !== null) {
-        const confirmed = window.confirm(`换成 ${size} × ${size} 会清空当前摆放，继续吗？`);
-        if (!confirmed) {
+    const occupied = state.doc.buildings.length > 0 || state.doc.police.length > 0 || state.doc.thief !== null;
+    void (async () => {
+        if (occupied && !(await askConfirm(`换成 ${size} × ${size} 会清空当前摆放，继续吗？`))) {
             gridSelect.value = String(state.doc.gridSize);
             return;
         }
-    }
-    replaceDoc(withGridSize(state.doc, size));
-    setMessage(`棋盘换成 ${size} × ${size}`);
+        replaceDoc(withGridSize(state.doc, size));
+        setMessage(`棋盘换成 ${size} × ${size}`);
+    })();
 });
 
 pickerEl.addEventListener("change", () => {
@@ -762,25 +809,30 @@ clearBtn.addEventListener("click", () => {
         setMessage("棋盘已经是空的", true);
         return;
     }
-    if (!window.confirm("清空棋盘上的小偷、建筑和预置警察？（id 与棋盘尺寸保留，可用 Ctrl+Z 撤销）")) return;
+    // 清空本身可撤销（Ctrl+Z 恢复），不需要二次确认
     state.selected = null;
     state.brush = null;
     commit({ ...doc, thief: null, buildings: [], police: [] });
-    setMessage("已清空棋盘");
+    setMessage("已清空棋盘，Ctrl+Z 可恢复");
     render();
 });
 
 deleteBtn.addEventListener("click", () => {
     const id = state.doc.id;
-    if (!window.confirm(`从磁盘删除 assets/Game/levels/${id}.json（含 .meta 与 levels.json 索引项）？`)) return;
-    void api.deleteLevel(id).then(error => {
+    void (async () => {
+        const confirmed = await askConfirm(
+            `从磁盘删除 assets/Game/levels/${id}.json（含 .meta 与 levels.json 索引项）？`,
+            "删除",
+        );
+        if (!confirmed) return;
+        const error = await api.deleteLevel(id);
         if (error !== null) {
             setMessage(error, true);
             return;
         }
         setMessage(`已删除 ${id}`);
-        void loadLevelList();
-    });
+        await loadLevelList();
+    })();
 });
 
 saveBtn.addEventListener("click", () => void save());

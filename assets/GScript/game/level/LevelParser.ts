@@ -128,8 +128,8 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
 
     const parseEntries = (kind: PlacementKind, list: unknown): void => {
         if (!Array.isArray(list)) return;
-        // 预置警察每枚棋子至多出现一次；建筑没有这个限制
-        const seenPoliceIds = new Set<string>();
+        // 每枚棋子在同一类别里至多出现一次（建筑/预置警察都只有一份预制体）
+        const seenIds = new Set<string>();
         (list as unknown[]).forEach((entry, index) => {
             const at = `${kind}[${index}]`;
             if (!isPlainObject(entry)) {
@@ -152,12 +152,12 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
                     errors.push(`${at}.pieceId: "${pieceId}" 不是${typeLabel(kind)}棋子`);
                 } else {
                     piece = found;
-                }
-                if (kind === "police") {
-                    if (seenPoliceIds.has(pieceId)) {
-                        errors.push(`${at}.pieceId: 警察棋子 "${pieceId}" 被预置了多次，每枚棋子只能预置一次`);
+                    if (seenIds.has(pieceId)) {
+                        errors.push(
+                            `${at}.pieceId: 棋子 "${pieceId}" 在 ${kind} 中出现了多次，每枚棋子只能使用一次`,
+                        );
                     }
-                    seenPoliceIds.add(pieceId);
+                    seenIds.add(pieceId);
                 }
             }
 

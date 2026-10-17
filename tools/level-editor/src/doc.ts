@@ -125,9 +125,9 @@ export function withGridSize(doc: Doc, gridSize: number): Doc {
     return { ...emptyDoc(doc.id, gridSize) };
 }
 
-/** 预置警察一枚棋子只能出现一次 */
-export function findPresetPolice(doc: Doc, pieceId: string): number {
-    return doc.police.findIndex(p => p.pieceId === pieceId);
+/** 某类预置物里是否已使用指定棋子（每枚棋子只能放置一次） */
+export function findPlacementIndex(doc: Doc, kind: PlacementKind, pieceId: string): number {
+    return listOf(doc, kind).findIndex(p => p.pieceId === pieceId);
 }
 
 function withList(doc: Doc, kind: PlacementKind, list: Placement[]): Doc {
@@ -141,8 +141,9 @@ export function withPlacementAdded(
     anchor: JsonCoord,
     rotation: Rotation,
 ): EditResult {
-    if (kind === "police" && findPresetPolice(doc, pieceId) >= 0) {
-        return { ok: false, reason: `${pieceId} 已经预置过，一枚警察棋子只能预置一次` };
+    if (findPlacementIndex(doc, kind, pieceId) >= 0) {
+        const label = kind === "police" ? "预置警察" : "建筑";
+        return { ok: false, reason: `${label} ${pieceId} 已经放置过，每枚棋子只能使用一次` };
     }
     const options = { doc, kind, pieceId, anchor, rotation };
     if (!canPlaceAt(options)) return { ok: false, reason: describeFailure(options) };
@@ -199,9 +200,19 @@ export function toRawLevel(doc: Doc): Record<string, unknown> {
     return raw;
 }
 
-/** 与磁盘上的关卡文件同格式：4 空格缩进 + 结尾换行 */
+/** 把多行展开的坐标对象压成一行，与仓库里 level_XX.json 的既有风格保持一致 */
+const COMPACT_COORD = /\{\s*"x":\s*(-?\d+),\s*"y":\s*(-?\d+)\s*\}/g;
+/** 把建筑/预置警察条目压成一行（在坐标压缩之后执行） */
+const COMPACT_PLACEMENT =
+    /\{\s*"pieceId":\s*("[^"]*"),\s*"anchor":\s*(\{ "x": -?\d+, "y": -?\d+ \}),\s*"rotation":\s*(\d+)\s*\}/g;
+
+/** 与磁盘上的关卡文件同格式：4 空格缩进、坐标与棋子条目各占一行、结尾换行 */
 export function serializeLevel(doc: Doc): string {
-    return `${JSON.stringify(toRawLevel(doc), null, 4)}\n`;
+    const text = JSON.stringify(toRawLevel(doc), null, 4)
+        .replace(COMPACT_COORD, (_match, x: string, y: string) => `{ "x": ${x}, "y": ${y} }`)
+        .replace(COMPACT_PLACEMENT, (_match, id: string, anchor: string, rotation: string) =>
+            `{ "pieceId": ${id}, "anchor": ${anchor}, "rotation": ${rotation} }`);
+    return `${text}\n`;
 }
 
 const isJsonCoord = (value: unknown): value is JsonCoord => {

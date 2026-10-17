@@ -415,3 +415,41 @@ button.danger {
     line-height: 1.45;
     white-space: pre;
 }
+
+/* ── 自定义确认弹层（内嵌浏览器的 confirm 会被自动取消） ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(38, 63, 71, 0.35);
+}
+
+.modal {
+    min-width: 320px;
+    max-width: 440px;
+    padding: 18px 20px 16px;
+    background: var(--cream);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 12px 40px rgba(38, 63, 71, 0.25);
+}
+
+.modal-text {
+    margin: 0 0 14px;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.modal-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.modal-row button.primary {
+    flex: 0 0 auto;
+    padding: 7px 18px;
+}

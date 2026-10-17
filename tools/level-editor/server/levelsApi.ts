@@ -47,8 +47,18 @@ function readIndex(levelsDir: string): string[] {
     }
 }
 
+/** 关卡 JSON 的坐标对象压成一行，与仓库里 level_XX.json 的既有风格保持一致 */
+const COMPACT_COORD = /\{\s*"x":\s*(-?\d+),\s*"y":\s*(-?\d+)\s*\}/g;
+/** 把建筑/预置警察条目压成一行（在坐标压缩之后执行） */
+const COMPACT_PLACEMENT =
+    /\{\s*"pieceId":\s*("[^"]*"),\s*"anchor":\s*(\{ "x": -?\d+, "y": -?\d+ \}),\s*"rotation":\s*(\d+)\s*\}/g;
+
 const writeJsonFile = (path: string, value: unknown): void => {
-    writeFileSync(path, `${JSON.stringify(value, null, 4)}\n`, "utf8");
+    const text = JSON.stringify(value, null, 4)
+        .replace(COMPACT_COORD, (_match, x: string, y: string) => `{ "x": ${x}, "y": ${y} }`)
+        .replace(COMPACT_PLACEMENT, (_match, id: string, anchor: string, rotation: string) =>
+            `{ "pieceId": ${id}, "anchor": ${anchor}, "rotation": ${rotation} }`);
+    writeFileSync(path, `${text}\n`, "utf8");
 };
 
 /** 新关卡需要一份 .meta，否则 Cocos 不会导入这个 JSON */

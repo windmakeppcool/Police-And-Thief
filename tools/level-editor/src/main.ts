@@ -1,5 +1,5 @@
 import "./style.css";
-import { type Rotation } from "../../../assets/GScript/game/common/GameTypes";
+import { PieceType, type Rotation } from "../../../assets/GScript/game/common/GameTypes";
 import { PolicePieces, StructuresPieces, BoardPieces } from "../../../assets/GScript/game/piece/pieces";
 import { coordKey } from "../../../assets/GScript/game/rules/BoardOccupancy";
 import { nextRotation, pieceCells } from "../../../assets/GScript/game/rules/PieceGeometry";
@@ -13,6 +13,7 @@ import {
     findPlacementIndex,
     fromRawLevel,
     listOf,
+    placementCells,
     placementJsonCells,
     serializeLevel,
     withGridSize,
@@ -192,6 +193,17 @@ function renderBoard(): void {
     const owners = placementIndex(doc);
     const ghost = ghostCells();
 
+    // 预置警察的警察站位格：用醒目黑框标出（不再标 origin cell）
+    const copCells = new Set<string>();
+    for (const preset of doc.police) {
+        const piece = BoardPieces[preset.pieceId];
+        const absolute = placementCells(preset, doc.gridSize);
+        const police = absolute[piece.policeAt ?? piece.origin];
+        if (!police) continue;
+        const at = toJsonCoord(police, doc.gridSize);
+        copCells.add(`${at.x},${at.y}`);
+    }
+
     const solCells = new Map<string, string>();
     const solCops = new Set<string>();
     const solution = state.report.solve?.solution ?? null;
@@ -210,20 +222,17 @@ function renderBoard(): void {
     const fragment = document.createDocumentFragment();
     for (let y = 0; y < doc.gridSize; y++) {
         for (let x = 0; x < doc.gridSize; x++) {
-            fragment.appendChild(cellNode({ x, y }, owners, ghost, solCells, solCops));
+            fragment.appendChild(cellNode({ x, y }, owners, ghost, copCells, solCells, solCops));
         }
     }
     boardEl.replaceChildren(fragment);
-}
-
-function isSelected(owner: CellOwner): boolean {
-    return state.selected?.kind === owner.kind && state.selected.index === owner.index;
 }
 
 function cellNode(
     at: JsonCoord,
     owners: Map<string, CellOwner>,
     ghost: { ok: boolean; keys: Set<string> } | null,
+    copCells: Set<string>,
     solCells: Map<string, string>,
     solCops: Set<string>,
 ): HTMLElement {
@@ -245,8 +254,10 @@ function cellNode(
         else node.style.setProperty("--tint", PRESET_COLOR);
         tag = ownerTag(owner);
         const placement = listOf(state.doc, owner.kind)[owner.index];
-        if (placement?.anchor.x === at.x && placement?.anchor.y === at.y) node.classList.add("cell--anchor");
-        if (isSelected(owner)) node.classList.add("cell--selected");
+        if (isPolice && copCells.has(key)) node.classList.add("cell--cop");
+        if (state.selected?.kind === owner.kind && state.selected.index === owner.index) {
+            node.classList.add("cell--selected");
+        }
         node.title = placement?.pieceId ?? "";
     }
 
@@ -275,7 +286,8 @@ function cellNode(
 // ── 侧栏渲染 ────────────────────────────────────────────────
 
 function pieceThumb(pieceId: string, rotation: Rotation): HTMLElement {
-    const cells = pieceCells(BoardPieces[pieceId], rotation);
+    const piece = BoardPieces[pieceId];
+    const cells = pieceCells(piece, rotation);
     const xs = cells.map(cell => cell.x);
     const ys = cells.map(cell => cell.y);
     const minX = Math.min(...xs);
@@ -283,6 +295,9 @@ function pieceThumb(pieceId: string, rotation: Rotation): HTMLElement {
     const maxX = Math.max(...xs);
     const maxY = Math.max(...ys);
     const occupied = new Set(cells.map(cell => `${cell.x - minX},${maxY - cell.y}`));
+    // 警察站位格：旋转后从结果里直接取，缩略图里用黑框标出（建筑不标）
+    const policeCell = piece.type === PieceType.Police ? cells[piece.policeAt ?? piece.origin] : undefined;
+    const policeKey = policeCell ? `${policeCell.x - minX},${maxY - policeCell.y}` : null;
 
     const thumb = document.createElement("div");
     thumb.className = "thumb";
@@ -290,9 +305,9 @@ function pieceThumb(pieceId: string, rotation: Rotation): HTMLElement {
     for (let row = 0; row < maxY - minY + 1; row++) {
         for (let col = 0; col < maxX - minX + 1; col++) {
             const cell = document.createElement("i");
-            if (occupied.has(`${col},${row}`)) cell.className = "on";
-            // origin cell 旋转后恒为 (0, 0)（相对坐标），在缩略图里就是 (-minX, maxY)
-            if (col === -minX && row === maxY) cell.classList.add("origin");
+            const key = `${col},${row}`;
+            if (occupied.has(key)) cell.className = "on";
+            if (key === policeKey) cell.classList.add("cop");
             thumb.appendChild(cell);
         }
     }

@@ -139,16 +139,9 @@ h2 {
     border-color: rgba(38, 63, 71, 0.25);
 }
 
-.cell--building.cell--anchor::after,
-.cell--preset.cell--anchor::after {
-    content: "";
-    position: absolute;
-    left: 4px;
-    top: 4px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--ink);
+/* 预置警察的警察站位格：醒目黑框（不再用黑框/黑点标 origin 中心点） */
+.cell--cop {
+    box-shadow: inset 0 0 0 4px var(--ink), 0 0 0 2px var(--cream);
 }
 
 .cell--selected {
@@ -289,8 +282,9 @@ h2 {
     background: var(--mint-deep);
 }
 
-.thumb i.origin {
+.thumb i.cop {
     box-shadow: inset 0 0 0 2px var(--ink);
+    background: var(--yellow);
 }
 
 .field {

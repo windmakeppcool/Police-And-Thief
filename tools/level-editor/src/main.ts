@@ -416,8 +416,10 @@ function renderReport(): void {
             ? reportLine("开局", "—", "busy")
             : reportLine(
                   "开局",
-                  report.captured ? "小偷已被围死（游戏一进去就结束）" : "小偷未被围死",
-                  report.captured ? "bad" : "ok",
+                  report.captured
+                      ? "小偷已被围住（不会立即结束，摆满全部警察才判胜）"
+                      : "小偷未被围住",
+                  report.captured ? "busy" : "ok",
               ),
     );
 
@@ -436,9 +438,22 @@ function renderReport(): void {
     } else if (solve === null) {
         lines.push(reportLine("可解性", "—", "busy"));
     } else if (solve.status === "solved") {
-        lines.push(reportLine("可解性", `可解：玩家再放 ${solve.solution?.length ?? 0} 枚（${solve.nodes} 节点）`, "ok"));
+        const remaining = solve.solution?.length ?? 0;
+        const text =
+            report.captured && remaining === 0
+                ? "开局即满足胜利条件（没有可部署的警察，开始巡逻后直接判胜）"
+                : `可解：玩家再放 ${remaining} 枚（${solve.nodes} 节点）`;
+        lines.push(reportLine("可解性", text, "ok"));
     } else if (solve.status === "unsat") {
-        lines.push(reportLine("可解性", "无解：其余警察全部上场也围不住", "bad"));
+        lines.push(
+            reportLine(
+                "可解性",
+                report.captured
+                    ? "无解：开局已围住，但剩余警察无法全部放下"
+                    : "无解：其余警察全部上场也围不住",
+                "bad",
+            ),
+        );
     } else {
         lines.push(reportLine("可解性", `预算不足（访问 ${solve.nodes} 节点），无法判定`, "bad"));
     }

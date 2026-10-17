@@ -128,11 +128,9 @@ UI 视觉基准是 `design/pocket-patrol-design.md`（“口袋巡逻队”薄�
 - 玩家从托盘拖出警察棋子放到棋盘；点击棋子会顺时针转向 90°：已上场时绕 origin cell 原地转向（需要落点合法），还在托盘时则先调好朝向（`GameSession.rotateInTray`），这样贴边的落点也能直接拖上去。
 - **已上场的棋子拖出棋盘即可撤回托盘**（`GameSession.remove`），预置锁定的棋子除外；撤下保留当前朝向，方便换个位置再摆。这样玩家不会被自己堵死。
 - HUD 的「已部署 N / 总数」就是当前在场棋子数（`GameSession.moveCount`，预置警察开局即计入）。已上场的棋子挪到别的格子不改变它，撤下则减一。
-- **获胜 = 小偷被围住 且 6 枚警察棋子全部上场**（`GameSession.won`，预置 + 玩家部署合计 6 枚）。两者缺一不可：只围住不算赢，摆满了没围住也不算。
-- **关卡可解性要求「预置就位后、其余警察全部上场」**：一关只算合格，当且仅当存在一种放法把所有未预置的警察棋子合法放到棋盘上、并且围住小偷（`tests/game2/helpers/levelFixtures.ts` 的 `fixedBlockedCells` / `deployablePoliceCatalog` 把建筑与预置警察都当固定路障）。这保证不会出现「某枚棋子被堵得完全放不下去」的坏关卡。
-- 通关固定得 1 颗星，不做多档评级（星数等于已过关卡数）。
-- 撤销可回退上一次放置/移动/撤下（撤下的棋子原样放回），重开把玩家部署的警察恢复到托盘初始状态；建筑与预置警察始终保持关卡配置。
-- **可视化摆关**：`npm run level-editor` 启动 `tools/level-editor/` 下的 vite 网页编辑器（端口 5173）。它直接 import 游戏的 `pieces.ts` / `PieceGeometry` / `LevelParser` 与测试求解器，摆小偷、建筑、预置警察时实时校验并判定可解性，保存直接写回 `assets/Game/levels/`（自动补 `.meta`、更新 `levels.json`）。该目录在 `assets/` 之外，不参与 Cocos 构建，不会被打包发布。
+- **获胜 = 小偷被围住 且 6 枚警察棋子全部上场**（`GameSession.won`，预置 + 玩家部署合计 6 枚）。两者缺一不可：只围住不算赢，摆满了没围住也不算；**开局若小偷已被预置警察/建筑围住、但还有警察没上场，游戏不会立即结束**，要等最后一枚棋子落下（`GameController.onStart` / `resetSession` 也会补一次判定，用于 6 枚全预置的极端关卡）。
+- **关卡可解性要求「预置就位后、其余警察全部上场」**：一关只算合格，当且仅当存在一种放法把所有未预置的警察棋子合法放到棋盘上、并且放满后围住小偷（`tests/game2/helpers/levelFixtures.ts` 的 `fixedBlockedCells` / `deployablePoliceCatalog` 把建筑与预置警察都当固定路障）。这保证不会出现「某枚棋子被堵得完全放不下去」的坏关卡。**开局已围住也是合法关卡**：此时求解退化为「剩余警察能否全部放下」，但关卡会失去围捕挑战；编辑器照常允许保存。
+- **可视化摆关**：`npm run level-editor` 启动 `tools/level-editor/` 下的 vite 网页编辑器（端口 5173）。它直接 import 游戏的 `pieces.ts` / `PieceGeometry` / `LevelParser` 与测试求解器，摆小偷、建筑、预置警察时实时校验并判定可解性，保存直接写回 `assets/Game/levels/`（自动补 `.meta`、更新 `levels.json`）。开局已围住不再阻止保存，但会提示「不会立即结束、摆满才判胜」。该目录在 `assets/` 之外，不参与 Cocos 构建，不会被打包发布。
 
 ## 平台适配
 
@@ -145,7 +143,7 @@ UI 视觉基准是 `design/pocket-patrol-design.md`（“口袋巡逻队”薄�
 - 修改 Cocos 资源时保留 `.meta` 文件，不要只移动 `.prefab`、图片或场景文件。
 - `core/ui/UIFactory.ts` 是与游戏无关的 UI 构造工具，`addLabel` / `createLabel` 的 `color` 为必填项——core 层不绑定业务配色，漏传会在编译期报错而不是运行时变白字。
 - 新增可测试的规则时放在 `game/rules`、`game/common`、`game/level` 中（保持无 `cc` 依赖），并在 `tests/game2` 补用例。
-- 调整关卡 JSON 后跑 `npm test`：`tests/game2/LevelJson.test.ts` 会扫盘校验 `levels.json` 与关卡文件一一对应、每关结构合法、开局不会被围死，且**用满全部 6 个警察棋子可解**（判定实现在 `tests/game2/helpers/levelSolver.ts` 的 `findFullSquadSolution`）；`tests/game2/LevelData.test.ts` 另外断言 level_01 的参考解与最少步数。
+- 调整关卡 JSON 后跑 `npm test`：`tests/game2/LevelJson.test.ts` 会扫盘校验 `levels.json` 与关卡文件一一对应、每关结构合法、开局已围住也允许（只要剩余警察能全部放下），且**用满全部 6 个警察棋子可解**（判定实现在 `tests/game2/helpers/levelSolver.ts` 的 `findFullSquadSolution`）；`tests/game2/LevelData.test.ts` 另外断言 level_01 的参考解与最少步数。
 - UI 布局常量集中在 `game/ui/Layout.ts`，设计分辨率为 1280×720（`FIXED_HEIGHT`），改布局优先改这里的 `Metrics`。
 - `typecheck:cocos` 依赖 Cocos Creator 生成的 `temp/tsconfig.cocos.json`；缺失时需要先用 Cocos Creator 打开项目。
 - `npm install` 当前可能报告来自测试工具链依赖的中等漏洞，不要直接运行破坏性升级命令；若本机 npm 缓存权限异常，可用 `npm install --cache .npm-cache`。

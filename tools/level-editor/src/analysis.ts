@@ -31,7 +31,7 @@ export type SolveReport = {
 export type Report = {
     errors: string[];
     level: LevelData | null;
-    /** 开局小偷是否已被建筑/预置警察围死 */
+    /** 开局小偷是否已被建筑/预置警察围住；允许存在，游戏不会因此立即结束 */
     captured: boolean;
     solve: SolveReport | null;
     /** 阻止保存的原因，空数组表示可以保存 */
@@ -40,7 +40,12 @@ export type Report = {
 
 /**
  * 用游戏自己的校验器 + 求解器体检当前关卡。
- * 判定口径与 tests/game2/LevelJson.test.ts 一致，所以「能保存」就等于「能过测试」。
+ * 判定口径与 tests/game2/LevelJson.test.ts 一致，所以「能保存」就等于「能过测试」：
+ * - 结构合法；
+ * - 预置就位后，其余警察能全部合法放到棋盘上，并且放满后围住小偷。
+ *
+ * 开局小偷已被围住并不阻止保存：游戏要等六枚警察全部上场才判胜，
+ * 此时求解退化为「剩余警察能否全部放下」。
  */
 export function analyze(doc: Doc): Report {
     const errors: string[] = [];
@@ -71,19 +76,21 @@ export function analyze(doc: Doc): Report {
         { owner: "blocked", cells: blocked },
     ]));
 
-    const solve: SolveReport = captured
-        ? { status: "unsat", nodes: 0, solution: null }
-        : (() => {
-              const pieces = enumeratePlacements(deployablePoliceCatalog(level), level.gridSize, level.thief);
-              const result = findFullSquadSolutionDetailed(pieces, level.gridSize, level.thief, blocked);
-              return { status: result.status, nodes: result.nodes, solution: result.solution };
-          })();
+    // 无论开局是否已围住都要跑求解：
+    // - 未围住：找「其余警察全部上场并围住小偷」的解；
+    // - 已围住：小偷去路已全部占住，求解只负责验证剩余警察能全部放下。
+    const pieces = enumeratePlacements(deployablePoliceCatalog(level), level.gridSize, level.thief);
+    const result = findFullSquadSolutionDetailed(pieces, level.gridSize, level.thief, blocked);
+    const solve: SolveReport = { status: result.status, nodes: result.nodes, solution: result.solution };
 
     const blockers: string[] = [];
     if (errors.length > 0) blockers.push(`关卡结构校验未通过（${errors.length} 处）`);
-    if (captured) blockers.push("开局小偷就已被建筑或预置警察围死，游戏一进去就结束了");
-    else if (solve.status === "unsat") {
-        blockers.push("无解：预置棋子就位后，其余警察全部上场也围不住小偷");
+    if (solve.status === "unsat") {
+        blockers.push(
+            captured
+                ? "无解：开局虽已围住小偷，但剩余警察无法全部合法放到棋盘上（必须六枚全部上场才判胜）"
+                : "无解：预置棋子就位后，其余警察全部上场也围不住小偷",
+        );
     } else if (solve.status === "unknown") {
         blockers.push(`求解预算不足（访问 ${solve.nodes} 个节点），无法判定是否可解`);
     } else if (solve.nodes > SOLVER_NODE_BUDGET * 0.5) {

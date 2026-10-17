@@ -39,14 +39,12 @@ export function deployablePoliceCatalog(level: LevelData): PieceCatalog {
 }
 
 /**
- * level_01 的参考解：用满全部 6 个警察棋子围住小偷。
+ * level_01 的参考解：关卡已预置 3 枚警察（开局锁定），这里只列玩家需要补放的 3 枚。
+ * 全部上场后合计 6 枚，围住小偷即胜。
  * 坐标是内部网格坐标（原点在棋盘几何中心、y 向上），描述求解落点而非关卡 JSON。
  */
 export const LEVEL_01_SOLUTION: ReadonlyArray<{ pieceId: string; anchor: Coord; rotation: Rotation }> = [
-    { pieceId: "PoliceUI-002", anchor: { x: 2, y: 2 }, rotation: 180 },
-    { pieceId: "PoliceUI-001", anchor: { x: 0, y: 0 }, rotation: 0 },
-    { pieceId: "PoliceUI-005", anchor: { x: -3, y: -3 }, rotation: 0 },
-    { pieceId: "PoliceUI-006", anchor: { x: 2, y: -3 }, rotation: 0 },
-    { pieceId: "PoliceUI-003", anchor: { x: -2, y: 1 }, rotation: 0 },
-    { pieceId: "PoliceUI-004", anchor: { x: -2, y: -1 }, rotation: 0 },
+    { pieceId: "PoliceUI-002", anchor: { x: 1, y: -2 }, rotation: 180 },
+    { pieceId: "PoliceUI-001", anchor: { x: 2, y: 1 }, rotation: 90 },
+    { pieceId: "PoliceUI-004", anchor: { x: 0, y: 2 }, rotation: 270 },
 ];

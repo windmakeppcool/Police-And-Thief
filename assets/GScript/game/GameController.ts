@@ -272,6 +272,9 @@ export class GameController extends Component {
         this.hud.setActionsEnabled(true);
         // 引导第 1 步：提示把警察从托盘拖到棋盘
         this.advanceGuide(1);
+        // 极端关卡（例如 6 枚警察全部预置）开局就可能同时满足「围住 + 全部上场」，
+        // 此时棋盘上没有可落子/可转向的棋子，必须在这里补一次判定，否则游戏会卡住。
+        this.checkWin();
     }
 
     /** 延迟弹出胜利卡片；重开时需要能取消，避免旧卡片盖在新一局上 */
@@ -366,6 +369,8 @@ export class GameController extends Component {
         this.dismissGuide();
         this.guideStep = 0;
         if (this.guideEnabled && this.started) this.advanceGuide(1);
+        // 与 onStart 同理：全预置关卡重开后依旧没有可操作棋子，补一次胜利判定
+        this.checkWin();
     }
 
     /** 前往结算页：记录通关进度后再打开结算，最后销毁对局节点 */

@@ -2,8 +2,6 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { coordKey } from "../../assets/GScript/game/rules/BoardOccupancy";
-import { isThiefCaptured } from "../../assets/GScript/game/rules/WinCondition";
 import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
 import { parseLevel, parseLevelIndex } from "../../assets/GScript/game/level/LevelParser";
 import { GameSession } from "../../assets/GScript/game/common/GameSession";
@@ -34,20 +32,15 @@ describe("关卡 JSON 资料", () => {
         }
     });
 
-    it("每关开局小偷尚未被围死，且预置棋子之外的警察全部上场即可解", () => {
+    it("每关结构合法，且预置之外的警察全部上场即可解", () => {
         const index = parseLevelIndex(readJson("levels.json"));
         for (const levelId of index) {
             const level = parseLevel(readJson(`${levelId}.json`), BoardPieces);
             // 固定路障 = 建筑 + 预置警察；预置警察开局就在棋盘上，不能算作玩家可落的子
             const blocked = fixedBlockedCells(level);
 
-            const occupancy = new Map<string, string>();
-            blocked.forEach(cell => occupancy.set(coordKey(cell), "blocked"));
-            expect(
-                isThiefCaptured(level.gridSize, level.thief, occupancy),
-                `${levelId} 开局不应已被围死`,
-            ).toBe(false);
-
+            // 开局是否已被围住不影响可解性判定：围住时求解只要求剩余警察能全部合法放下
+            // （游戏仍要求六枚全部上场才判胜，所以「围住 + 放不满」同样无解）
             // 只用「关卡没有预置」的警察棋子求解：预置棋子已作为路障计入 blocked
             const solverPieces = enumeratePlacements(deployablePoliceCatalog(level), level.gridSize, level.thief);
             const result = findFullSquadSolutionDetailed(solverPieces, level.gridSize, level.thief, blocked);

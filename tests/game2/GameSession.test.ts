@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { GameSession } from "../../assets/GScript/game/common/GameSession";
 import { PieceType, type LevelData, type PieceCatalog } from "../../assets/GScript/game/common/GameTypes";
-import { LEVEL_01_SOLUTION, loadLevelFile } from "./helpers/levelFixtures";
+import { LEVEL_01_SOLUTION, fixedBlockedCells, loadLevelFile } from "./helpers/levelFixtures";
 import { BoardPieces } from "../../assets/GScript/game/piece/pieces";
 import { TEST_CATALOG } from "./helpers/levelSolver";
 
@@ -34,6 +34,35 @@ function levelWithBuilding(anchor: { x: number; y: number }): {
     };
     const level: LevelData = { ...EMPTY_LEVEL, buildings: [{ pieceId: 'Building-A', anchor, rotation: 0 }] };
     return { level, catalog };
+}
+
+/**
+ * 用 TEST_CATALOG 的 3 枚警察 + 4 枚单格建筑拼一个「开局小偷已被围住、
+ * 但还有警察留在托盘」的关卡，用来验证开局围住并不会直接结束游戏。
+ */
+function capturedStartLevel(): { level: LevelData; catalog: PieceCatalog } {
+    const buildingIds = ["Building-1", "Building-2", "Building-3", "Building-4"];
+    const exits = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+    const buildings = exits.map((anchor, i) => ({ pieceId: buildingIds[i], anchor, rotation: 0 as const }));
+    const catalog: PieceCatalog = {
+        ...CATALOG,
+        ...Object.fromEntries(
+            buildingIds.map(id => [
+                id,
+                {
+                    id,
+                    type: PieceType.Building,
+                    cells: [{ name: 'white-00', coord: { x: 0, y: 0 } }],
+                    origin: 0,
+                    rotation: 0 as const,
+                },
+            ]),
+        ),
+    };
+    return {
+        level: { id: 'captured-start', gridSize: 6, thief: { x: 0, y: 0 }, buildings, police: [] },
+        catalog,
+    };
 }
 
 describe("GameSession 基础操作", () => {
@@ -246,31 +275,34 @@ describe("GameSession 撤销历史与旋转", () => {
 });
 
 describe("GameSession 关卡规则", () => {
-    it("开局时建筑已占用格子且未被围住", () => {
+    it("开局时建筑与预置警察已占用格子且未被围住", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
-        const occupancy = session.occupancy();
-        const buildingCells = LEVEL_01.buildings.flatMap(b => session.cellsAt(b.pieceId, b.anchor, b.rotation));
+        const blocked = fixedBlockedCells(LEVEL_01);
 
-        expect(buildingCells.length).toBe(6);
-        expect(occupancy.size).toBe(6);
+        expect(blocked.length).toBeGreaterThan(0);
+        expect(session.occupancy().size).toBe(blocked.length);
+        expect(session.moveCount).toBe(LEVEL_01.police.length);
         expect(session.captured).toBe(false);
-        expect(session.moveCount).toBe(0);
+        expect(session.deployed).toBe(false);
     });
 
-    it("不能把警力放到建筑或小偷所在格", () => {
+    it("不能把警力放到建筑、预置警察或小偷所在格", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
         const building = LEVEL_01.buildings[0];
-        expect(session.canPlaceAt(building.pieceId, building.anchor)).toBe(false);
-        expect(session.place('PoliceUI-003', LEVEL_01.thief)).toBe(false);
+        const preset = LEVEL_01.police[0];
+        expect(session.canPlaceAt("PoliceUI-001", building.anchor)).toBe(false);
+        expect(session.place("PoliceUI-001", LEVEL_01.thief)).toBe(false);
+        expect(session.place("PoliceUI-001", preset.anchor)).toBe(false);
     });
 
-    it("按参考解可以用满六个警察棋子围住小偷（纯逻辑层）", () => {
+    it("按参考解补放其余警察后，六枚全部上场并围住小偷", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
         for (const step of LEVEL_01_SOLUTION) {
             expect(session.canPlaceAt(step.pieceId, step.anchor, step.rotation)).toBe(true);
             expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
         }
 
+        expect(session.getPoliceIds()).toHaveLength(6);
         expect(session.moveCount).toBe(6);
         expect(session.captured).toBe(true);
         expect(session.deployed).toBe(true);
@@ -279,14 +311,14 @@ describe("GameSession 关卡规则", () => {
 
     it("没摆满六枚之前，即便已围住小偷也不算赢", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
-        // 参考解的前两枚就把小偷四条去路全堵上了
-        expect(session.place("PoliceUI-002", { x: 2, y: 2 }, 180)).toBe(true);
-        expect(session.place("PoliceUI-001", { x: 0, y: 0 }, 0)).toBe(true);
+        // 关卡预置了 3 枚；参考解第一枚落下后，小偷的四条去路就全被堵上了
+        const [first, ...rest] = LEVEL_01_SOLUTION;
+        expect(session.place(first.pieceId, first.anchor, first.rotation)).toBe(true);
         expect(session.captured).toBe(true);
         expect(session.deployed).toBe(false);
         expect(session.won).toBe(false);
 
-        for (const step of LEVEL_01_SOLUTION.slice(2)) {
+        for (const step of rest) {
             expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
         }
         expect(session.deployed).toBe(true);
@@ -321,61 +353,85 @@ describe("GameSession 关卡规则", () => {
     });
 });
 
+describe("GameSession 开局已被围住", () => {
+    it("开局围住但还有棋子没放：游戏不会结束，放满全部棋子后才算赢", () => {
+        const { level, catalog } = capturedStartLevel();
+        const session = new GameSession(level, catalog);
+
+        expect(session.captured).toBe(true);
+        expect(session.deployed).toBe(false);
+        expect(session.won).toBe(false);
+
+        expect(session.place("Police-A", { x: -2, y: 1 })).toBe(true);
+        expect(session.won).toBe(false);
+        expect(session.place("Police-B", { x: 1, y: -2 })).toBe(true);
+        expect(session.won).toBe(false);
+        expect(session.place("Police-C", { x: -2, y: -2 })).toBe(true);
+        expect(session.deployed).toBe(true);
+        expect(session.won).toBe(true);
+    });
+});
+
 describe("GameSession 撤下棋子", () => {
+    const presetCount = LEVEL_01.police.length;
+    const [firstStep] = LEVEL_01_SOLUTION;
+    const lastStep = LEVEL_01_SOLUTION[LEVEL_01_SOLUTION.length - 1];
+
     it("撤下已上场的棋子：回到托盘，在场数下降", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
-        expect(session.place('PoliceUI-003', { x: -2, y: 1 })).toBe(true);
-        expect(session.moveCount).toBe(1);
-        expect(session.getPlacement('PoliceUI-003')).not.toBeNull();
+        expect(session.place(firstStep.pieceId, firstStep.anchor, firstStep.rotation)).toBe(true);
+        expect(session.moveCount).toBe(presetCount + 1);
+        expect(session.getPlacement(firstStep.pieceId)).not.toBeNull();
 
-        expect(session.remove('PoliceUI-003')).toBe(true);
-        expect(session.getPlacement('PoliceUI-003')).toBeNull();
-        expect(session.moveCount).toBe(0);
+        expect(session.remove(firstStep.pieceId)).toBe(true);
+        expect(session.getPlacement(firstStep.pieceId)).toBeNull();
+        expect(session.moveCount).toBe(presetCount);
     });
 
     it("撤下尚未上场的棋子返回 false", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
-        expect(session.remove('PoliceUI-003')).toBe(false);
-        expect(session.moveCount).toBe(0);
+        expect(session.remove(firstStep.pieceId)).toBe(false);
+        expect(session.moveCount).toBe(presetCount);
     });
 
     it("撤下保留当前朝向，方便换个位置再摆", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
-        expect(session.place('PoliceUI-003', { x: -2, y: 1 }, 180)).toBe(true);
-        expect(session.getRotation('PoliceUI-003')).toBe(180);
+        expect(session.place(firstStep.pieceId, firstStep.anchor, firstStep.rotation)).toBe(true);
+        expect(session.getRotation(firstStep.pieceId)).toBe(firstStep.rotation);
 
-        expect(session.remove('PoliceUI-003')).toBe(true);
-        expect(session.getRotation('PoliceUI-003')).toBe(180);
+        expect(session.remove(firstStep.pieceId)).toBe(true);
+        expect(session.getRotation(firstStep.pieceId)).toBe(firstStep.rotation);
     });
 
     it("撤销可以把撤下的棋子原样放回", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
-        expect(session.place('PoliceUI-003', { x: -2, y: 1 }, 180)).toBe(true);
-        expect(session.remove('PoliceUI-003')).toBe(true);
+        expect(session.place(firstStep.pieceId, firstStep.anchor, firstStep.rotation)).toBe(true);
+        expect(session.remove(firstStep.pieceId)).toBe(true);
         expect(session.undoCount).toBe(2);
 
         expect(session.undo()).toBe(true);
-        expect(session.getPlacement('PoliceUI-003')).toEqual({ anchor: { x: -2, y: 1 }, rotation: 180 });
+        expect(session.getPlacement(firstStep.pieceId)).toEqual({
+            anchor: firstStep.anchor,
+            rotation: firstStep.rotation,
+        });
     });
 
     it("撤下不会产生胜利，重新摆满后才赢", () => {
         const session = new GameSession(LEVEL_01, BoardPieces);
-        // 先按参考解摆满六枚，达成胜利
+        // 先按参考解补齐 3 枚，和预置的 3 枚合计 6 枚，达成胜利
         for (const step of LEVEL_01_SOLUTION) {
             expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
         }
         expect(session.won).toBe(true);
 
         // 撤下一枚：小偷仍被围住，但六枚没摆满，就不算赢
-        const taken = LEVEL_01_SOLUTION[5].pieceId;
-        expect(session.remove(taken)).toBe(true);
+        expect(session.remove(lastStep.pieceId)).toBe(true);
         expect(session.captured).toBe(true);
         expect(session.deployed).toBe(false);
         expect(session.won).toBe(false);
 
         // 放回去又赢了
-        const step = LEVEL_01_SOLUTION[5];
-        expect(session.place(step.pieceId, step.anchor, step.rotation)).toBe(true);
+        expect(session.place(lastStep.pieceId, lastStep.anchor, lastStep.rotation)).toBe(true);
         expect(session.won).toBe(true);
     });
 });

@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { PieceType, type Coord, type LevelData, type PieceCatalog, type Rotation } from "../../../assets/GScript/game/common/GameTypes";
 import { parseLevel } from "../../../assets/GScript/game/level/LevelParser";
+import { pieceCells, toAbsoluteCells } from "../../../assets/GScript/game/rules/PieceGeometry";
 import { BoardPieces } from "../../../assets/GScript/game/piece/pieces";
 
 /**
@@ -19,6 +20,22 @@ const LEVELS_DIR = fileURLToPath(new URL("../../../assets/Game/levels/", import.
 /** 读关卡 JSON 并解析为内部 LevelData（坐标已从左上原点列/行换算） */
 export function loadLevelFile(levelId: string): LevelData {
     return parseLevel(JSON.parse(readFileSync(join(LEVELS_DIR, `${levelId}.json`), "utf8")), BoardPieces);
+}
+
+/** 关卡里开局就固定占住格子的东西：建筑障碍 + 预置锁定的警察棋子 */
+export function fixedBlockedCells(level: LevelData): Coord[] {
+    return [
+        ...level.buildings.flatMap(b =>
+            toAbsoluteCells(pieceCells(BoardPieces[b.pieceId], b.rotation), b.anchor)),
+        ...level.police.flatMap(p =>
+            toAbsoluteCells(pieceCells(BoardPieces[p.pieceId], p.rotation), p.anchor)),
+    ];
+}
+
+/** 玩家可以部署的警察棋子目录：去掉关卡预置锁定的那些（它们开局就在棋盘上） */
+export function deployablePoliceCatalog(level: LevelData): PieceCatalog {
+    const preset = new Set(level.police.map(p => p.pieceId));
+    return Object.fromEntries(Object.entries(POLICE_ONLY_PIECES).filter(([id]) => !preset.has(id)));
 }
 
 /**

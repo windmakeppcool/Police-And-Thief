@@ -11,7 +11,9 @@
     "test:watch": "vitest --config vitest.config.ts",
     "test:logic": "vitest run --config vitest.config.ts tests/game2 tests/core",
     "typecheck:logic": "tsc --noEmit -p tsconfig.spec.json",
-    "typecheck:cocos": "tsc --noEmit"
+    "typecheck:cocos": "tsc --noEmit",
+    "typecheck:editor": "tsc --noEmit -p tools/level-editor/tsconfig.json",
+    "level-editor": "vite --config tools/level-editor/vite.config.ts"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

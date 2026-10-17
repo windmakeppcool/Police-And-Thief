@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <title>关卡编辑器 · 警察抓小偷</title>
+</head>
+<body>
+    <div class="app">
+        <header class="topbar">
+            <h1>关卡编辑器</h1>
+            <span class="hint">工具目录 tools/level-editor，不在 assets/ 下，不参与 Cocos 构建</span>
+        </header>
+
+        <main class="layout">
+            <section class="pane pane--board">
+                <div class="pane-head">
+                    <strong>棋盘</strong>
+                    <span class="hint" id="board-hint">JSON 坐标：列 x 向右、行 y 向下，左上角是 (0, 0)</span>
+                </div>
+                <div class="board-scroll">
+                    <div class="board" id="board"></div>
+                </div>
+                <div class="message" id="message"></div>
+            </section>
+
+            <aside class="pane pane--side">
+                <section class="block">
+                    <h2>工具</h2>
+                    <div class="tools" id="tools"></div>
+                </section>
+
+                <section class="block">
+                    <h2>棋子</h2>
+                    <div class="palette" id="palette"></div>
+                    <p class="hint" id="brush-rotation"></p>
+                </section>
+
+                <section class="block">
+                    <h2>关卡</h2>
+                    <div class="field">
+                        <label for="level-id">id / 文件名</label>
+                        <input id="level-id" type="text" spellcheck="false" />
+                    </div>
+                    <div class="field">
+                        <label for="grid-size">棋盘尺寸</label>
+                        <select id="grid-size">
+                            <option value="4">4 × 4</option>
+                            <option value="6" selected>6 × 6</option>
+                            <option value="8">8 × 8</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label for="level-picker">打开已有关卡</label>
+                        <select id="level-picker"></select>
+                    </div>
+                    <div class="row">
+                        <button id="btn-new" type="button">新建</button>
+                        <button id="btn-delete" type="button" class="danger">删除</button>
+                    </div>
+                </section>
+
+                <section class="block">
+                    <h2>校验</h2>
+                    <div class="report" id="report"></div>
+                    <label class="check">
+                        <input id="show-solution" type="checkbox" />
+                        <span>在棋盘上显示参考解</span>
+                    </label>
+                </section>
+
+                <section class="block">
+                    <h2>输出</h2>
+                    <div class="row">
+                        <button id="btn-save" type="button" class="primary">保存到 assets/Game/levels</button>
+                    </div>
+                    <p class="hint" id="save-hint"></p>
+                    <div class="row">
+                        <button id="btn-copy" type="button">复制 JSON</button>
+                        <button id="btn-download" type="button">下载 .json</button>
+                    </div>
+                    <pre class="json" id="json"></pre>
+                </section>
+            </aside>
+        </main>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+</body>
+</html>

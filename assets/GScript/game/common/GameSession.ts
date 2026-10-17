@@ -24,6 +24,8 @@ type HistoryEntry = Readonly<{
 export class GameSession {
     /** 警察棋子 id，保持目录顺序 */
     private readonly policeIds: string[];
+    /** 关卡预置、开局锁定的警察棋子 id：不能移动/转向/撤下，重开后仍在原位 */
+    private readonly lockedIds: ReadonlySet<string>;
     private readonly placements = new Map<string, PiecePlacement>();
     private readonly rotations = new Map<string, Rotation>();
     private readonly history: HistoryEntry[] = [];
@@ -37,11 +39,26 @@ export class GameSession {
                 throw new Error(`[GameSession] 关卡引用了不存在的棋子: ${placement.pieceId}`);
             }
         }
+        for (const preset of level.police) {
+            const piece = this.catalog[preset.pieceId];
+            if (!piece) {
+                throw new Error(`[GameSession] 关卡预置了不存在的棋子: ${preset.pieceId}`);
+            }
+            if (piece.type !== PieceType.Police) {
+                throw new Error(`[GameSession] 预置棋子 ${preset.pieceId} 不是警察棋子`);
+            }
+        }
         this.policeIds = Object.values(catalog)
             .filter(p => p.type === PieceType.Police)
             .map(p => p.id);
+        this.lockedIds = new Set(level.police.map(p => p.pieceId));
         for (const piece of Object.values(catalog)) {
             this.rotations.set(piece.id, piece.rotation);
+        }
+        // 预置警察开局即在棋盘上、占用格子并计入在场数；几何合法性已由 LevelParser 保证
+        for (const preset of level.police) {
+            this.placements.set(preset.pieceId, { anchor: preset.anchor, rotation: preset.rotation });
+            this.rotations.set(preset.pieceId, preset.rotation);
         }
     }
 
@@ -55,6 +72,20 @@ export class GameSession {
 
     getPoliceIds(): readonly string[] {
         return this.policeIds;
+    }
+
+    /** 进入托盘、玩家可操作的警察棋子（预置锁定的不出现）；同时是棋盘上的上场分母 */
+    getTrayPoliceIds(): readonly string[] {
+        return this.policeIds.filter(id => !this.lockedIds.has(id));
+    }
+
+    /** 关卡预置、锁定在棋盘上的警察棋子 id */
+    getPresetPoliceIds(): readonly string[] {
+        return this.policeIds.filter(id => this.lockedIds.has(id));
+    }
+
+    isLocked(pieceId: string): boolean {
+        return this.lockedIds.has(pieceId);
     }
 
     /** 棋子当前（或指定）旋转下的相对 cell */
@@ -97,7 +128,7 @@ export class GameSession {
     }
 
     canPlaceAt(pieceId: string, anchor: Coord, rotation?: Rotation): boolean {
-        if (!this.isPolice(pieceId)) return false;
+        if (!this.isPolice(pieceId) || this.isLocked(pieceId)) return false;
         const ignore = this.placements.has(pieceId) ? pieceId : undefined;
         return canPlace({
             gridSize: this.gridSize,
@@ -109,7 +140,7 @@ export class GameSession {
 
     /** 落子：成功返回 true。已上场的棋子挪位不增加在场数 */
     place(pieceId: string, anchor: Coord, rotation?: Rotation): boolean {
-        if (!this.isPolice(pieceId)) return false;
+        if (!this.isPolice(pieceId) || this.isLocked(pieceId)) return false;
         if (!this.canPlaceAt(pieceId, anchor, rotation)) return false;
         const prev = this.placements.get(pieceId) ?? null;
         const prevTrayRotation = this.getRotation(pieceId);
@@ -130,7 +161,7 @@ export class GameSession {
      * 保留当前朝向——玩家多半要换个位置再摆，不必重新转向；撤销可原样放回。
      */
     remove(pieceId: string): boolean {
-        if (!this.isPolice(pieceId)) return false;
+        if (!this.isPolice(pieceId) || this.isLocked(pieceId)) return false;
         const prev = this.placements.get(pieceId) ?? null;
         if (!prev) return false;
         this.placements.delete(pieceId);
@@ -139,7 +170,7 @@ export class GameSession {
     }
 
     canRotate(pieceId: string): boolean {
-        if (!this.isPolice(pieceId)) return false;
+        if (!this.isPolice(pieceId) || this.isLocked(pieceId)) return false;
         const placement = this.placements.get(pieceId);
         if (!placement) return false;
         return this.canPlaceAt(pieceId, placement.anchor, nextRotation(placement.rotation));
@@ -147,7 +178,7 @@ export class GameSession {
 
     /** 原地顺时针旋转，返回是否成功 */
     rotate(pieceId: string): boolean {
-        if (!this.isPolice(pieceId)) return false;
+        if (!this.isPolice(pieceId) || this.isLocked(pieceId)) return false;
         const placement = this.placements.get(pieceId);
         if (!placement || !this.canRotate(pieceId)) return false;
         const rotation = nextRotation(placement.rotation);
@@ -163,6 +194,7 @@ export class GameSession {
      * （否则某些贴边落点必须先上场再转向，玩家无法通过点击完成）
      */
     rotateInTray(pieceId: string): boolean {
+        if (this.isLocked(pieceId)) return false;
         if (this.placements.has(pieceId)) return false;
         const piece = this.requirePiece(pieceId);
         if (piece.type !== PieceType.Police) return false;
@@ -190,12 +222,21 @@ export class GameSession {
         return true;
     }
 
-    /** 重开：所有警察回到托盘初始状态，建筑保持关卡配置 */
+    /**
+     * 重开：玩家放下的警察全部回到托盘初始朝向，建筑与预置警察保持关卡配置。
+     * 预置警察是锁定的关卡布置，重开不能把它们收回托盘。
+     */
     reset(): void {
-        this.placements.clear();
+        for (const pieceId of this.placements.keys()) {
+            if (!this.lockedIds.has(pieceId)) this.placements.delete(pieceId);
+        }
         this.history.length = 0;
         for (const piece of Object.values(this.catalog)) {
             this.rotations.set(piece.id, piece.rotation);
+        }
+        for (const preset of this.level.police) {
+            this.placements.set(preset.pieceId, { anchor: preset.anchor, rotation: preset.rotation });
+            this.rotations.set(preset.pieceId, preset.rotation);
         }
     }
 

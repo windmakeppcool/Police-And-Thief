@@ -5,6 +5,7 @@ import {
     type LevelData,
     type Piece,
     type PieceCatalog,
+    type PresetPolice,
     type Rotation,
 } from "../common/GameTypes";
 import { pieceCells, toAbsoluteCells } from "../rules/PieceGeometry";
@@ -34,8 +35,8 @@ export function toJsonCoord(coord: Coord, gridSize: number): JsonCoord {
     return { x: coord.x + gridSize / 2, y: gridSize / 2 - 1 - coord.y };
 }
 
-const LEVEL_KEYS = new Set(["id", "gridSize", "thief", "buildings"]);
-const BUILDING_KEYS = new Set(["pieceId", "anchor", "rotation"]);
+const LEVEL_KEYS = new Set(["id", "gridSize", "thief", "buildings", "police"]);
+const ENTRY_KEYS = new Set(["pieceId", "anchor", "rotation"]);
 const ROTATIONS: readonly unknown[] = [0, 90, 180, 270];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -74,8 +75,12 @@ function collectUnknownKeys(
     }
 }
 
-/** 每条建筑通过阶段一校验后的结果，供阶段二棋盘范围与几何校验使用 */
+/** 关卡里两类预置物（buildings / police）共用的条目结构 */
+type PlacementKind = "buildings" | "police";
+
+/** 每条预置物通过阶段一校验后的结果，供阶段二棋盘范围与几何校验使用 */
 type Phase1Entry = Readonly<{
+    kind: PlacementKind;
     index: number;
     pieceId?: string;
     piece?: Piece;
@@ -110,19 +115,30 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
     const buildingsOk = Array.isArray(raw.buildings);
     if (!buildingsOk) errors.push(`buildings: 必须是数组，实际是 ${formatValue(raw.buildings)}`);
 
+    // police 可缺省（旧关卡没有这个字段）；一旦给出就必须是数组
+    const policeAbsent = raw.police === undefined;
+    const policeOk = policeAbsent || Array.isArray(raw.police);
+    if (!policeOk) errors.push(`police: 必须是数组，实际是 ${formatValue(raw.police)}`);
+
     // ── 阶段一：纯形状/枚举校验，与 gridSize、坐标换算无关 ──
     // 无论顶层字段是否合法都跑完并全部收集，让配关的人一次看全所有独立错误
     const phase1: Phase1Entry[] = [];
 
-    if (buildingsOk) {
-        (raw.buildings as unknown[]).forEach((entry, index) => {
-            const at = `buildings[${index}]`;
+    const typeLabel = (kind: PlacementKind): string => (kind === "buildings" ? "建筑" : "警察");
+
+    const parseEntries = (kind: PlacementKind, list: unknown): void => {
+        if (!Array.isArray(list)) return;
+        // 预置警察每枚棋子至多出现一次；建筑没有这个限制
+        const seenPoliceIds = new Set<string>();
+        (list as unknown[]).forEach((entry, index) => {
+            const at = `${kind}[${index}]`;
             if (!isPlainObject(entry)) {
                 errors.push(`${at}: 必须是对象`);
                 return;
             }
-            collectUnknownKeys(entry, BUILDING_KEYS, at, errors);
+            collectUnknownKeys(entry, ENTRY_KEYS, at, errors);
 
+            const expectedType = kind === "buildings" ? PieceType.Building : PieceType.Police;
             let pieceId: string | undefined;
             let piece: Piece | undefined;
             if (typeof entry.pieceId !== "string") {
@@ -132,10 +148,16 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
                 const found = catalog[pieceId];
                 if (!found) {
                     errors.push(`${at}.pieceId: 棋子目录中不存在 "${pieceId}"`);
-                } else if (found.type !== PieceType.Building) {
-                    errors.push(`${at}.pieceId: "${pieceId}" 不是建筑棋子`);
+                } else if (found.type !== expectedType) {
+                    errors.push(`${at}.pieceId: "${pieceId}" 不是${typeLabel(kind)}棋子`);
                 } else {
                     piece = found;
+                }
+                if (kind === "police") {
+                    if (seenPoliceIds.has(pieceId)) {
+                        errors.push(`${at}.pieceId: 警察棋子 "${pieceId}" 被预置了多次，每枚棋子只能预置一次`);
+                    }
+                    seenPoliceIds.add(pieceId);
                 }
             }
 
@@ -154,13 +176,17 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
                 rotation = entry.rotation as Rotation;
             }
 
-            phase1.push({ index, pieceId, piece, anchor, rotation });
+            phase1.push({ kind, index, pieceId, piece, anchor, rotation });
         });
-    }
+    };
+
+    if (buildingsOk) parseEntries("buildings", raw.buildings);
+    if (!policeAbsent && policeOk) parseEntries("police", raw.police);
 
     // ── 阶段二：依赖合法 gridSize / 坐标换算的检查（棋盘范围与几何校验） ──
     // toGridCoord 需要合法 gridSize，这类检查不能放进阶段一
     const usable: Array<{
+        kind: PlacementKind;
         index: number;
         pieceId: string;
         anchor: JsonCoord;
@@ -183,17 +209,18 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
         // anchor 棋盘范围只依赖 anchor 形状与 gridSize，与 pieceId 是否合法无关
         for (const e of phase1) {
             if (e.anchor !== undefined && !inJsonBoard(e.anchor)) {
-                errors.push(`buildings[${e.index}].anchor: ${formatCoord(e.anchor)} 超出棋盘范围 0..${gridSize - 1}`);
+                errors.push(`${e.kind}[${e.index}].anchor: ${formatCoord(e.anchor)} 超出棋盘范围 0..${gridSize - 1}`);
             }
         }
 
-        // 结构完全合法且在棋盘内的建筑，记下 cells 供几何校验使用
+        // 结构完全合法且在棋盘内的条目，记下 cells 供几何校验使用
         for (const e of phase1) {
             if (e.piece === undefined || e.pieceId === undefined || e.anchor === undefined || e.rotation === undefined) {
                 continue;
             }
             if (!inJsonBoard(e.anchor)) continue;
             usable.push({
+                kind: e.kind,
                 index: e.index,
                 pieceId: e.pieceId,
                 anchor: e.anchor,
@@ -202,14 +229,14 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
             });
         }
 
-        // ── 几何校验：越界 / 压小偷 / 互相重叠 ──
+        // ── 几何校验：越界 / 压小偷 / 互相重叠（建筑与预置警察共用一张占用表） ──
         // thief 形状非法时阶段一已报错，此时跳过「压小偷」这一项比对
         const thief = thiefOk ? toGridCoord(raw.thief as JsonCoord, gridSize) : undefined;
-        /** 格子键 -> 先占用它的建筑下标 */
-        const occupied = new Map<string, number>();
+        /** 格子键 -> 先占用它的条目文案（buildings[i] / police[i]） */
+        const occupied = new Map<string, string>();
 
         for (const item of usable) {
-            const at = `buildings[${item.index}]`;
+            const at = `${item.kind}[${item.index}]`;
             for (const cell of item.cells) {
                 const jsonCell = toJsonCoord(cell, gridSize);
                 if (!isInBoard(gridSize, cell)) {
@@ -223,10 +250,10 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
                 const key = coordKey(cell);
                 const owner = occupied.get(key);
                 if (owner !== undefined) {
-                    errors.push(`${at}: 与 buildings[${owner}] 重叠于格子 ${formatCoord(jsonCell)}`);
+                    errors.push(`${at}: 与 ${owner} 重叠于格子 ${formatCoord(jsonCell)}`);
                     continue;
                 }
-                occupied.set(key, item.index);
+                occupied.set(key, at);
             }
         }
     }
@@ -236,17 +263,17 @@ export function parseLevel(raw: unknown, catalog: PieceCatalog): LevelData {
     // 能走到这里说明阶段一全部通过（否则上面已抛出），字段断言安全
     const id = raw.id as string;
     const gridSize = raw.gridSize as number;
+    const toPlacement = (e: (typeof usable)[number]) => ({
+        pieceId: e.pieceId,
+        anchor: toGridCoord(e.anchor, gridSize),
+        rotation: e.rotation,
+    });
     return {
         id,
         gridSize,
         thief: toGridCoord(raw.thief as JsonCoord, gridSize),
-        buildings: usable.map(
-            (b): BuildingPlacement => ({
-                pieceId: b.pieceId,
-                anchor: toGridCoord(b.anchor, gridSize),
-                rotation: b.rotation,
-            }),
-        ),
+        buildings: usable.filter(e => e.kind === "buildings").map(toPlacement) as BuildingPlacement[],
+        police: usable.filter(e => e.kind === "police").map(toPlacement) as PresetPolice[],
     };
 }
 

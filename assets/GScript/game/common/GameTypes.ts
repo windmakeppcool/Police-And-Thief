@@ -35,6 +35,13 @@ export type BuildingPlacement = Readonly<{
     rotation: Rotation;
 }>;
 
+/** 关卡预置的警察棋子：开局锁定在棋盘上，不出现在托盘中，玩家不能移动或转向 */
+export type PresetPolice = Readonly<{
+    pieceId: string;
+    anchor: Coord;
+    rotation: Rotation;
+}>;
+
 export type LevelData = Readonly<{
     id: string;
     /** 棋盘边长（格数），坐标范围 -gridSize/2 .. gridSize/2-1 */
@@ -43,4 +50,6 @@ export type LevelData = Readonly<{
     thief: Coord;
     /** 关卡生成时自动摆放的建筑障碍 */
     buildings: ReadonlyArray<BuildingPlacement>;
+    /** 开局即锁定在棋盘上的警察棋子；JSON 中可缺省，缺省按空数组处理 */
+    police: ReadonlyArray<PresetPolice>;
 }>;

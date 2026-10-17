@@ -3,20 +3,20 @@ import { PieceCatalog, PieceType } from "../common/GameTypes";
 
 // 建筑类棋子
 export const StructuresPieces: PieceCatalog = {
-    // L形结构
+    // L形结构（竖臂向下，与预制体 StructureUI-001 一致）
     "Structure-001": {
         id: "Structure-001",
         type: PieceType.Building,
         cells: [
-            { name: "white-00", coord: { x: 0, y: 2 } },
-            { name: "white-01", coord: { x: 0, y: 1 } },
+            { name: "white-00", coord: { x: 0, y: -2 } },
+            { name: "white-01", coord: { x: 0, y: -1 } },
             { name: "white-02", coord: { x: 0, y: 0 } },
             { name: "white-03", coord: { x: 1, y: 0 } }
         ],
         origin: 2,
         rotation: 0,
     },
-    // L形结构
+    // L形结构（竖臂向上）
     "Structure-002": {
         id: "Structure-002",
         type: PieceType.Building,

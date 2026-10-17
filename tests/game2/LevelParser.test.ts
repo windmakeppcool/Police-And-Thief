@@ -8,14 +8,14 @@ import {
     toJsonCoord,
 } from "../../assets/GScript/game/level/LevelParser";
 
-/** 两个同形 L 建筑（不同 id）和一个警察，够跑结构/几何用例 */
+/** 两个 L 建筑（不同 id、互为镜像）和一个警察，够跑结构/几何用例 */
 const CATALOG: PieceCatalog = {
     "Structure-001": {
         id: "Structure-001",
         type: PieceType.Building,
         cells: [
-            { name: "white-00", coord: { x: 0, y: 2 } },
-            { name: "white-01", coord: { x: 0, y: 1 } },
+            { name: "white-00", coord: { x: 0, y: -2 } },
+            { name: "white-01", coord: { x: 0, y: -1 } },
             { name: "white-02", coord: { x: 0, y: 0 } },
             { name: "white-03", coord: { x: 1, y: 0 } },
         ],
@@ -95,11 +95,11 @@ describe("结构校验", () => {
 
     it("建筑 anchor 换算为内部坐标且保留 rotation", () => {
         const level = parseLevel(
-            { ...baseLevel(), buildings: [{ pieceId: "Structure-001", anchor: { x: 1, y: 1 }, rotation: 180 }] },
+            { ...baseLevel(), buildings: [{ pieceId: "Structure-001", anchor: { x: 1, y: 2 }, rotation: 180 }] },
             CATALOG,
         );
         expect(level.buildings).toEqual([
-            { pieceId: "Structure-001", anchor: { x: -2, y: 1 }, rotation: 180 },
+            { pieceId: "Structure-001", anchor: { x: -2, y: 0 }, rotation: 180 },
         ]);
     });
 
@@ -263,9 +263,9 @@ describe("结构校验", () => {
 });
 
 describe("几何校验", () => {
-    /** Structure-001 在 rotation=0 时占 (0,2)(0,1)(0,0)(1,0)，origin 是 (0,0) */
+    /** Structure-001 在 rotation=0 时占 (0,-2)(0,-1)(0,0)(1,0)，origin 是 (0,0) */
     it("建筑展开后的格子越界报错", () => {
-        // anchor JSON (5,0) -> 内部 (2,2)：L 形向上两格会越出 y=2
+        // anchor JSON (5,0) -> 内部 (2,2)：L 形向右一脚会越出 x=2
         const errors = parseErrors({
             ...baseLevel(),
             buildings: [{ pieceId: "Structure-001", anchor: { x: 5, y: 0 }, rotation: 0 }],
@@ -305,7 +305,7 @@ describe("几何校验", () => {
     });
 
     it("完全合法的建筑摆放通过校验", () => {
-        // anchor (1,2) -> 内部 (-2,0)：L 形占 (-2,2)(-2,1)(-2,0)(-1,0)
+        // anchor (1,2) -> 内部 (-2,0)：L 形占 (-2,-2)(-2,-1)(-2,0)(-1,0)
         // anchor (4,3) -> 内部 (1,-1)：L 形转 180° 占 (1,-3)(1,-2)(1,-1)(0,-1)
         const level = parseLevel({
             ...baseLevel(),
@@ -374,7 +374,7 @@ describe("预置警察 police", () => {
         const errors = parseErrors({
             ...baseLevel(),
             buildings: [{ pieceId: "Structure-001", anchor: { x: 1, y: 2 }, rotation: 0 }],
-            police: [{ pieceId: "PoliceUI-002", anchor: { x: 1, y: 1 }, rotation: 0 }],
+            police: [{ pieceId: "PoliceUI-002", anchor: { x: 1, y: 3 }, rotation: 0 }],
         });
         expect(errors.some(e => e.startsWith("police[0]") && e.includes("与 buildings[0] 重叠"))).toBe(true);
     });
